@@ -1,11 +1,11 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using System.Web;
 using Azure.Core;
 using Azure.Identity;
 using YAYL;
 using YAYL.Attributes;
-
-Console.WriteLine("Hello, World!");
 
 if (args.Length < 1)
 {
@@ -14,7 +14,9 @@ if (args.Length < 1)
 }
 
 var parser = new YamlParser();
-if (parser.Parse<HttpRequestInfo>(args[0]) is not HttpRequestInfo request)
+parser.AddVariableResolver(EnvironmentVariableRegex, variable => Environment.GetEnvironmentVariable(variable) ?? "");
+
+if (parser.ParseFile<HttpRequestInfo>(args[0]) is not HttpRequestInfo request)
 {
     Console.WriteLine("Failed to parse YAML");
     return;
@@ -49,7 +51,7 @@ if (!string.IsNullOrEmpty(request.Body) && httpMethod.AllowsRequestBody())
     httpRequest.Content = new StringContent(request.Body);
     if (!string.IsNullOrEmpty(request.ContentType))
     {
-        httpRequest.Headers.Add("Content-Type", request.ContentType);
+        httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType);
     }
 }
 
@@ -101,12 +103,11 @@ public record ApiKeyAuthentication(string Key) : Authentication
 public record HttpRequestInfo(
     string Method,
     string Url,
-    Authentication Authentication,
-    Dictionary<string, string> Headers,
-    Dictionary<string, string> Query,
-    string ContentType,
-    string Body,
-    bool Stream
+    Authentication? Authentication,
+    Dictionary<string, string>? Headers,
+    Dictionary<string, string>? Query,
+    string? ContentType,
+    string? Body
 );
 
 public static class HttpExtensions
@@ -115,4 +116,9 @@ public static class HttpExtensions
     {
         return method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch;
     }
+}
+partial class Program
+{
+    [GeneratedRegex(@"\$\{([^}]+)\}")]
+    private static partial Regex EnvironmentVariableRegex { get; }
 }
