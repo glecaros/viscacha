@@ -5,8 +5,8 @@ using Azure.Core;
 using Azure.Identity;
 using dotenv.net;
 using YAYL;
-using YAYL.Attributes;
 using System.Text.Json;
+using ApiTester.Models;
 
 DotEnv.Load();
 
@@ -19,26 +19,15 @@ if (args.Length < 1)
 var parser = new YamlParser();
 parser.AddVariableResolver(EnvironmentVariableRegex, variable => Environment.GetEnvironmentVariable(variable) ?? "");
 
-// Replace the current YAML parsing block with logic to accept a collection or a single request.
-List<HttpRequestInfo> requests;
-if (parser.ParseFile<Document>(args[0]) is Document doc && doc.Requests is not null)
-{
-    requests = doc.Requests;
-}
-else if (parser.ParseFile<HttpRequestInfo>(args[0]) is HttpRequestInfo single)
-{
-    requests = new List<HttpRequestInfo> { single };
-}
-else
+if (parser.ParseFile<Document>(args[0]) is not Document doc)
 {
     Console.WriteLine("Failed to parse YAML");
     return;
 }
 
-// Custom resolver to substitute variables from previous responses.
 string ResolveVariables(string input, Dictionary<string, JsonElement> responses)
 {
-    return Regex.Replace(input, @"#\{([^}]+)\}", match =>
+    return ResponseVariableRegex.Replace(input, match =>
     {
         var variable = match.Groups[1].Value;
         // Expected format: rN.path.to.field (for JSON responses)
@@ -50,6 +39,8 @@ string ResolveVariables(string input, Dictionary<string, JsonElement> responses)
                 try
                 {
                     // Use simple JSON pointer by navigating property names separated by dot.
+
+                    /* TODO: Check if we need this */
                     using var doc = JsonDocument.Parse(json.GetRawText());
                     JsonElement element = doc.RootElement;
                     foreach (var prop in parts[1].Split('.'))
@@ -78,15 +69,16 @@ string ResolveVariables(string input, Dictionary<string, JsonElement> responses)
 using var client = new HttpClient();
 var responses = new Dictionary<string, JsonElement>();
 
-foreach (var request in requests)
+foreach (var req in doc.Requests)
 {
-    var builder = new UriBuilder(ResolveVariables(request.Url, responses));
+    var request = req.GetEffectiveRequest(doc.BaseConfig);
+    var builder = new UriBuilder(request.Url);
     if (request.Query?.Count > 0)
     {
         var query = HttpUtility.ParseQueryString(builder.Query);
         foreach (var (key, value) in request.Query)
         {
-            query[ResolveVariables(key, responses)] = ResolveVariables(value, responses);
+            query[key] = value;
         }
         builder.Query = query.ToString();
     }
@@ -98,7 +90,7 @@ foreach (var request in requests)
     {
         foreach (var (key, value) in request.Headers)
         {
-            httpRequest.Headers.Add(ResolveVariables(key, responses), ResolveVariables(value, responses));
+            httpRequest.Headers.Add(key, value);
         }
     }
 
@@ -107,7 +99,7 @@ foreach (var request in requests)
         httpRequest.Content = new StringContent(ResolveVariables(request.Body, responses));
         if (!string.IsNullOrEmpty(request.ContentType))
         {
-            httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(ResolveVariables(request.ContentType, responses));
+            httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(request.ContentType);
         }
     }
 
@@ -136,11 +128,16 @@ foreach (var request in requests)
     {
         var response = await client.SendAsync(httpRequest);
         response.Content.ReadAsStreamAsync().Result.CopyTo(Console.OpenStandardOutput());
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"HTTP request failed: {response.StatusCode}");
+            continue;
+        }
 
         if (response.Content.Headers.ContentType?.MediaType == "application/json")
         {
             var jsonResponse = await response.Content.ReadAsStringAsync();
-            responses[$"r{requests.IndexOf(request)}"] = JsonDocument.Parse(jsonResponse).RootElement;
+            responses[$"r{doc.Requests.IndexOf(req)}"] = JsonDocument.Parse(jsonResponse).RootElement;
         }
     }
     catch (Exception ex)
@@ -148,31 +145,6 @@ foreach (var request in requests)
         Console.WriteLine($"HTTP request failed: {ex.Message}");
     }
 }
-
-[YamlPolymorphic("type")]
-[YamlDerivedType("api-key", typeof(ApiKeyAuthentication))]
-[YamlDerivedType("azure-credentials", typeof(AzureCredentialsAuthentication))]
-public record Authentication();
-
-public record AzureCredentialsAuthentication(string[] Scopes) : Authentication;
-
-public record ApiKeyAuthentication(string Key) : Authentication
-{
-    public string? Header { get; init; }
-    public string? Prefix { get; init; }
-};
-
-public record HttpRequestInfo(
-    string Method,
-    string Url,
-    Authentication? Authentication,
-    Dictionary<string, string>? Headers,
-    Dictionary<string, string>? Query,
-    string? ContentType,
-    string? Body
-);
-
-public record Document(List<HttpRequestInfo> Requests);
 
 public static class HttpExtensions
 {
@@ -185,4 +157,8 @@ partial class Program
 {
     [GeneratedRegex(@"\$\{([^}]+)\}")]
     private static partial Regex EnvironmentVariableRegex { get; }
+
+    [GeneratedRegex(@"#\{([^}]+)\}")]
+    private static partial Regex ResponseVariableRegex { get; }
+
 }
