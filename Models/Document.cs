@@ -1,6 +1,6 @@
 namespace ApiTester.Models;
 
-public record RequestConfig(
+public record Defaults(
     string? Url,
     Authentication? Authentication,
     Dictionary<string, string>? Headers,
@@ -8,25 +8,15 @@ public record RequestConfig(
     string? ContentType
 );
 
-public record Document(RequestConfig? BaseConfig, List<HttpRequestInfo> Requests);
-
-public record HttpRequestInfo(
+public record Request(
     string Method,
     string? Url,
     Authentication? Authentication,
     Dictionary<string, string>? Headers,
     Dictionary<string, string>? Query,
     string? ContentType,
-    string? Body)
-{
-    public HttpRequestInfo GetEffectiveRequest(RequestConfig? baseConfig) =>
-        new(
-            Method,
-            Url ?? baseConfig?.Url,
-            Authentication ?? baseConfig?.Authentication,
-            Headers ?? baseConfig?.Headers,
-            Query ?? baseConfig?.Query,
-            ContentType ?? baseConfig?.ContentType,
-            Body
-        );
-}
+    string? Body);
+
+
+public record Document(Defaults? Defaults, List<Request> Requests);
+
