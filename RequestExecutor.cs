@@ -7,15 +7,28 @@ using Azure.Identity;
 
 namespace ApiTester;
 
+internal static class HttpExtensions
+{
+    public static bool AllowsRequestBody(this HttpMethod method)
+    {
+        return method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch;
+    }
+}
+
 public class RequestExecutor: IDisposable
 {
     private readonly HttpClient _client = new();
     private readonly Dictionary<string, JsonElement> _responses = new();
+    private readonly Dictionary<string, string> _commandLineVariables = new();
     private readonly Defaults? _defaults;
 
-    public RequestExecutor(Defaults? defaults)
+    public RequestExecutor(Defaults? defaults, Dictionary<string, string>? commandLineVariables = null)
     {
         _defaults = defaults;
+        if (commandLineVariables != null)
+        {
+            _commandLineVariables = commandLineVariables;
+        }
     }
 
     private Uri ApplyQuery(string url, Dictionary<string, string>? query)
@@ -56,7 +69,7 @@ public class RequestExecutor: IDisposable
 
     private string ResolveVariables(string input)
     {
-        return Constants.ResponseVariableRegex.Replace(input, match =>
+        var result = Constants.ResponseVariableRegex.Replace(input, match =>
         {
             var variable = match.Groups[1].Value;
             if (variable.StartsWith("r"))
@@ -86,6 +99,12 @@ public class RequestExecutor: IDisposable
                 }
             }
             return match.Value;
+        });
+
+        return Constants.CommandLineVariableRegex.Replace(result, match =>
+        {
+            var variable = match.Groups[1].Value;
+            return _commandLineVariables.TryGetValue(variable, out var value) ? value : match.Value;
         });
     }
 
@@ -165,9 +184,6 @@ public class RequestExecutor: IDisposable
         }
         return content;
     }
-
-
-
 
     public void Dispose()
     {
