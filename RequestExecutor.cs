@@ -89,10 +89,27 @@ public class RequestExecutor: IDisposable
         });
     }
 
+    private string GetUrl(Models.Request request)
+    {
+        if (request.Url is not null)
+        {
+            return request.Url;
+        }
+        if (_defaults?.BaseUrl is not null)
+        {
+            if (request.Path is not null)
+            {
+                return $"{_defaults.BaseUrl}{request.Path}";
+            }
+            return _defaults.BaseUrl;
+        }
+        throw new ArgumentException("URL is required");
+    }
+
 
     public string Execute(Models.Request request, int requestIndex)
     {
-        var url = request.Url ?? _defaults?.Url;
+        var url = ResolveVariables(GetUrl(request));
         if (string.IsNullOrEmpty(url))
         {
             throw new ArgumentException("URL is required");

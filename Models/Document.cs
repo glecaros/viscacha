@@ -1,7 +1,7 @@
 namespace ApiTester.Models;
 
 public record Defaults(
-    string? Url,
+    string? BaseUrl,
     Authentication? Authentication,
     Dictionary<string, string>? Headers,
     Dictionary<string, string>? Query,
@@ -11,6 +11,7 @@ public record Defaults(
 public record Request(
     string Method,
     string? Url,
+    string? Path,
     Authentication? Authentication,
     Dictionary<string, string>? Headers,
     Dictionary<string, string>? Query,
