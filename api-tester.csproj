@@ -11,7 +11,7 @@
     <ToolCommandName>api-tester</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageId>api-tester</PackageId>
     <Authors>Gerardo Lecaros</Authors>
     <Description>A tool for testing HTTP APIs using YAML definitions</Description>

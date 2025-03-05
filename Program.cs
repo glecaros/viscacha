@@ -39,10 +39,9 @@ static void RunCommand(FileInfo file, string[] variableArgs)
     Dictionary<string, string> commandLineVariables = new();
     foreach (var varArg in variableArgs)
     {
-        var parts = varArg.Split('=', 2);
-        if (parts.Length == 2)
+        if (varArg.Split('=', 2) is [var variableName, var variableValue])
         {
-            commandLineVariables[parts[0]] = parts[1];
+            commandLineVariables[variableName] = ResolveVariableValue(variableValue);
         }
         else
         {
@@ -85,6 +84,22 @@ static void RunCommand(FileInfo file, string[] variableArgs)
             Console.Error.WriteLine($"HTTP request failed: {ex.Message}");
         }
     }
+}
+
+static string ResolveVariableValue(string value)
+{
+    if (!value.StartsWith("@"))
+    {
+        return value;
+    }
+    var fileName = value[1..];
+    if (!File.Exists(fileName))
+    {
+        Console.Error.WriteLine($"File not found: {fileName}");
+        Environment.Exit(-1);
+    }
+    var binaryContent = File.ReadAllBytes(fileName);
+    return Convert.ToBase64String(binaryContent);
 }
 
 internal static class YamlExtensions

@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Web;
 using ApiTester.Models;
 using Azure.Core;
@@ -14,6 +15,10 @@ internal static class HttpExtensions
         return method == HttpMethod.Post || method == HttpMethod.Put || method == HttpMethod.Patch;
     }
 }
+
+internal record ResponseWrapper(
+    [property: JsonPropertyName("code")] int Code,
+    [property: JsonPropertyName("content")] object? Content);
 
 public class RequestExecutor: IDisposable
 {
@@ -171,18 +176,24 @@ public class RequestExecutor: IDisposable
         }
 
         using var response = _client.Send(httpRequest);
-        var content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        if (!response.IsSuccessStatusCode)
+        var stringContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+        var responseContentType = response.Content.Headers.ContentType?.MediaType;
+
+        if (responseContentType == "application/json")
         {
-            Console.WriteLine($"HTTP request failed: {response.StatusCode}");
-            throw new HttpRequestException($"HTTP request failed: {response.StatusCode}");
+            _responses[$"r{requestIndex}"] = JsonDocument.Parse(stringContent).RootElement;
         }
 
-        if (response.Content.Headers.ContentType?.MediaType == "application/json")
+        object? content = responseContentType switch
         {
-            _responses[$"r{requestIndex}"] = JsonDocument.Parse(content).RootElement;
-        }
-        return content;
+            "application/json" => JsonSerializer.Deserialize<object>(stringContent),
+            _ => null
+        };
+        return JsonSerializer.Serialize(new ResponseWrapper((int)response.StatusCode, content), new JsonSerializerOptions()
+        {
+            WriteIndented = true,
+        });
     }
 
     public void Dispose()
