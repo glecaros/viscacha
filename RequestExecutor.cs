@@ -178,14 +178,14 @@ public class RequestExecutor: IDisposable
         using var response = _client.Send(httpRequest);
         var stringContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
-        var contentType = response.Content.Headers.ContentType?.MediaType;
+        var responseContentType = response.Content.Headers.ContentType?.MediaType;
 
-        if (contentType == "application/json")
+        if (responseContentType == "application/json")
         {
             _responses[$"r{requestIndex}"] = JsonDocument.Parse(stringContent).RootElement;
         }
 
-        object? content = contentType switch
+        object? content = responseContentType switch
         {
             "application/json" => JsonSerializer.Deserialize<object>(stringContent),
             _ => null
