@@ -1,6 +1,7 @@
 namespace ApiTester.Models;
 
 public record Defaults(
+    string? Import,
     string? BaseUrl,
     Authentication? Authentication,
     Dictionary<string, string>? Headers,
@@ -8,8 +9,7 @@ public record Defaults(
     string? ContentType
 )
 {
-    public static Defaults Empty => new(null, null, null, null, null);
+    public static Defaults Empty => new(null, null, null, null, null, null);
 };
 
 public record Document(Defaults? Defaults, List<Request> Requests);
-
