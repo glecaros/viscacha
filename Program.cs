@@ -67,6 +67,30 @@ static void RunCommand(FileInfo file, string[] variableArgs)
         Environment.Exit(-1);
     }
 
+    if (document?.Defaults?.Import is string importFile)
+    {
+        var importPath = Path.Combine(file.Directory?.FullName ?? ".", importFile);
+        if (parser.TryParseFile<Defaults>(importPath, out var importedDefaults) && importedDefaults is not null)
+        {
+            doc = new Document(
+                new Defaults(
+                    importFile,
+                    document.Defaults.BaseUrl ?? importedDefaults.BaseUrl,
+                    document.Defaults.Authentication ?? importedDefaults.Authentication,
+                    document.Defaults.Headers.Merge(importedDefaults.Headers),
+                    document.Defaults.Query.Merge(importedDefaults.Query),
+                    document.Defaults.ContentType ?? importedDefaults.ContentType
+                ),
+                document.Requests
+            );
+        }
+        else
+        {
+            Console.Error.WriteLine("Failed to import defaults from the specified file");
+            Environment.Exit(-1);
+        }
+    }
+
     using var executor = new RequestExecutor(doc.Defaults, commandLineVariables);
 
     foreach (var request in doc.Requests)
@@ -116,6 +140,23 @@ internal static class YamlExtensions
             result = default;
             return false;
         }
+    }
+
+    public static Dictionary<TKey, TValue>? Merge<TKey, TValue>(this Dictionary<TKey, TValue>? left, Dictionary<TKey, TValue>? right) where TKey : notnull
+    {
+        if (left is null)
+        {
+            return right;
+        }
+        if (right is null)
+        {
+            return left;
+        }
+        foreach (var (key, value) in right)
+        {
+            left[key] = value;
+        }
+        return left;
     }
 }
 
