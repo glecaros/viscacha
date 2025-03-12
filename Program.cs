@@ -4,12 +4,20 @@ using ApiTester.Models;
 using ApiTester;
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Text.Json;
 
 DotEnv.Load();
 
 var fileArgument = new Argument<FileInfo>(
     name: "file",
     description: "YAML file containing the API request(s) to execute");
+
+var defaultsFile = new Option<FileInfo>(
+    name: "--defaults",
+    description: "YAML file containing the default values for the API request(s)")
+{
+    Arity = ArgumentArity.ZeroOrOne
+};
 
 var variableOption = new Option<string[]>(
     name: "--var",
@@ -21,19 +29,26 @@ var variableOption = new Option<string[]>(
 var rootCommand = new RootCommand("API Tester - Execute API requests defined in YAML files")
 {
     fileArgument,
+    defaultsFile,
     variableOption
 };
 
-rootCommand.SetHandler(RunCommand, fileArgument, variableOption);
+rootCommand.SetHandler(RunCommand, fileArgument, defaultsFile, variableOption);
 
 return rootCommand.Invoke(args);
 
-static void RunCommand(FileInfo file, string[] variableArgs)
+static void RunCommand(FileInfo file, FileInfo? defaultsFile, string[] variableArgs)
 {
     if (!file.Exists)
     {
         Console.Error.WriteLine($"File not found: {file.FullName}");
-        return;
+        Environment.Exit(-1);
+    }
+
+    if (defaultsFile is not null && !defaultsFile.Exists)
+    {
+        Console.Error.WriteLine($"Defaults file not found: {defaultsFile.FullName}");
+        Environment.Exit(-1);
     }
 
     Dictionary<string, string> commandLineVariables = new();
@@ -67,32 +82,45 @@ static void RunCommand(FileInfo file, string[] variableArgs)
         Environment.Exit(-1);
     }
 
-    if (document?.Defaults?.Import is string importFile)
+    Defaults? commandLineDefaults = null;
+    if (defaultsFile is not null)
     {
-        var importPath = Path.Combine(file.Directory?.FullName ?? ".", importFile);
-        if (parser.TryParseFile<Defaults>(importPath, out var importedDefaults) && importedDefaults is not null)
+        if (!parser.TryParseFile<Defaults>(defaultsFile.FullName, out commandLineDefaults) || commandLineDefaults is null)
         {
-            doc = new Document(
-                new Defaults(
-                    importFile,
-                    document.Defaults.BaseUrl ?? importedDefaults.BaseUrl,
-                    document.Defaults.Authentication ?? importedDefaults.Authentication,
-                    document.Defaults.Headers.Merge(importedDefaults.Headers),
-                    document.Defaults.Query.Merge(importedDefaults.Query),
-                    document.Defaults.ContentType ?? importedDefaults.ContentType
-                ),
-                document.Requests
-            );
-        }
-        else
-        {
-            Console.Error.WriteLine("Failed to import defaults from the specified file");
+            Console.Error.WriteLine("Failed to parse defaults file");
             Environment.Exit(-1);
         }
     }
 
+    Defaults? importedDefaults = null;
+    if (doc.Defaults?.Import is string importFile)
+    {
+        var importPath = Path.Combine(file.Directory?.FullName ?? ".", importFile);
+        if (!parser.TryParseFile(importPath, out importedDefaults) || importedDefaults is null)
+        {
+            Console.Error.WriteLine("Failed to parse imported defaults file");
+            Environment.Exit(-1);
+        }
+    }
+
+    if (commandLineDefaults is not null || importedDefaults is not null)
+    {
+        doc = new Document(
+            new Defaults(
+                doc.Defaults?.Import,
+                commandLineDefaults?.BaseUrl ?? doc.Defaults?.BaseUrl ?? importedDefaults?.BaseUrl,
+                commandLineDefaults?.Authentication ?? doc.Defaults?.Authentication ?? importedDefaults?.Authentication,
+                commandLineDefaults?.Headers.Merge(doc.Defaults?.Headers.Merge(importedDefaults?.Headers)),
+                commandLineDefaults?.Query.Merge(doc.Defaults?.Query.Merge(importedDefaults?.Query)),
+                commandLineDefaults?.ContentType ?? doc.Defaults?.ContentType ?? importedDefaults?.ContentType
+            ),
+            doc.Requests
+        );
+    }
+
     using var executor = new RequestExecutor(doc.Defaults, commandLineVariables);
 
+    List<ResponseWrapper> responses = new();
     foreach (var request in doc.Requests)
     {
         try
@@ -100,7 +128,7 @@ static void RunCommand(FileInfo file, string[] variableArgs)
             var response = executor.Execute(request, doc.Requests.IndexOf(request));
             if (response != null)
             {
-                Console.WriteLine(response);
+                responses.Add(response);
             }
         }
         catch (Exception ex)
@@ -108,6 +136,10 @@ static void RunCommand(FileInfo file, string[] variableArgs)
             Console.Error.WriteLine($"HTTP request failed: {ex.Message}");
         }
     }
+    Console.WriteLine(JsonSerializer.Serialize(responses, new JsonSerializerOptions()
+    {
+        WriteIndented = true,
+    }));
 }
 
 static string ResolveVariableValue(string value)
