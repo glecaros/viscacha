@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Net.ServerSentEvents;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
@@ -16,9 +17,13 @@ internal static class HttpExtensions
     }
 }
 
-internal record ResponseWrapper(
+public record ResponseWrapper(
     [property: JsonPropertyName("code")] int Code,
     [property: JsonPropertyName("content")] object? Content);
+
+internal record SSEEvent(
+    [property: JsonPropertyName("event")] string EventName,
+    [property: JsonPropertyName("data")] string Data);
 
 public class RequestExecutor: IDisposable
 {
@@ -130,8 +135,26 @@ public class RequestExecutor: IDisposable
         throw new ArgumentException("URL is required");
     }
 
+    private async Task<object?> HandleApplicationJson(HttpContent content, int requestIndex)
+    {
+        var stringContent = await content.ReadAsStringAsync().ConfigureAwait(false);
+        _responses[$"r{requestIndex}"] = JsonDocument.Parse(stringContent).RootElement;
+        return JsonSerializer.Deserialize<object>(stringContent);
+    }
 
-    public string Execute(Models.Request request, int requestIndex)
+    private async Task<object?> HandleSSE(HttpContent content)
+    {
+        using var stream = await content.ReadAsStreamAsync();
+        var parser = SseParser.Create(stream);
+        List<SSEEvent> sseItems = [];
+        await foreach (SseItem<string> item in parser.EnumerateAsync())
+        {
+            sseItems.Add(new SSEEvent(item.EventType, item.Data));
+        }
+        return sseItems;
+    }
+
+    public ResponseWrapper Execute(Models.Request request, int requestIndex)
     {
         var url = ResolveVariables(GetUrl(request));
         if (string.IsNullOrEmpty(url))
@@ -176,24 +199,15 @@ public class RequestExecutor: IDisposable
         }
 
         using var response = _client.Send(httpRequest);
-        var stringContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
         var responseContentType = response.Content.Headers.ContentType?.MediaType;
-
-        if (responseContentType == "application/json")
-        {
-            _responses[$"r{requestIndex}"] = JsonDocument.Parse(stringContent).RootElement;
-        }
-
         object? content = responseContentType switch
         {
-            "application/json" => JsonSerializer.Deserialize<object>(stringContent),
+            "application/json" => HandleApplicationJson(response.Content, requestIndex).GetAwaiter().GetResult(),
+            "text/event-stream" => HandleSSE(response.Content).GetAwaiter().GetResult(),
             _ => null
         };
-        return JsonSerializer.Serialize(new ResponseWrapper((int)response.StatusCode, content), new JsonSerializerOptions()
-        {
-            WriteIndented = true,
-        });
+        return new((int)response.StatusCode, content);
     }
 
     public void Dispose()

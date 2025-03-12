@@ -11,7 +11,7 @@
     <ToolCommandName>api-tester</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <PackageId>api-tester</PackageId>
     <Authors>Gerardo Lecaros</Authors>
     <Description>A tool for testing HTTP APIs using YAML definitions</Description>
@@ -21,6 +21,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.13.2" />
     <PackageReference Include="dotenv.net" Version="3.2.1" />
+    <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.3" />
     <PackageReference Include="YAYL" Version="1.2.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
