@@ -21,7 +21,7 @@ api-tester <yaml-file> [--var name=value ...]
 ### Example
 
 ```bash
-api-tester -- requests.yaml --var userId=123 --var token=abcdef
+api-tester requests.yaml --var userId=123 --var token=abcdef
 ```
 
 ### YAML File Structure
@@ -87,6 +87,14 @@ Example:
 defaults:
   import: common-defaults.yaml
 ```
+
+Additionally, defaults can be imported from the command line:
+
+```bash
+api-tester <request-file> --defaults <defaults-file>
+```
+
+If defaults are provided using multiple mechanisms, the order of precedence is as follows: first, those provided via the command line, then those embedded in the file, and finally those imported in the file.
 
 ## License
 
