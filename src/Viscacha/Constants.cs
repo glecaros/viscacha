@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ApiTester;
+namespace Viscacha;
 
 public static partial class Constants
 {

@@ -1,4 +1,6 @@
-namespace ApiTester.Models;
+using System.Collections.Generic;
+
+namespace Viscacha.Model;
 
 public record Request(
     string Method,

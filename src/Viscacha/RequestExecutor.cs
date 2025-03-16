@@ -1,13 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.ServerSentEvents;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using System.Web;
-using ApiTester.Models;
 using Azure.Core;
 using Azure.Identity;
+using Viscacha.Model;
 
-namespace ApiTester;
+namespace Viscacha;
 
 internal static class HttpExtensions
 {
@@ -29,16 +33,11 @@ public class RequestExecutor: IDisposable
 {
     private readonly HttpClient _client = new();
     private readonly Dictionary<string, JsonElement> _responses = new();
-    private readonly Dictionary<string, string> _commandLineVariables = new();
     private readonly Defaults? _defaults;
 
-    public RequestExecutor(Defaults? defaults, Dictionary<string, string>? commandLineVariables = null)
+    public RequestExecutor(Defaults? defaults)
     {
         _defaults = defaults;
-        if (commandLineVariables != null)
-        {
-            _commandLineVariables = commandLineVariables;
-        }
     }
 
     private Uri ApplyQuery(string url, Dictionary<string, string>? query)
@@ -79,7 +78,7 @@ public class RequestExecutor: IDisposable
 
     private string ResolveVariables(string input)
     {
-        var result = Constants.ResponseVariableRegex.Replace(input, match =>
+        return Constants.ResponseVariableRegex.Replace(input, match =>
         {
             var variable = match.Groups[1].Value;
             if (variable.StartsWith("r"))
@@ -110,15 +109,9 @@ public class RequestExecutor: IDisposable
             }
             return match.Value;
         });
-
-        return Constants.CommandLineVariableRegex.Replace(result, match =>
-        {
-            var variable = match.Groups[1].Value;
-            return _commandLineVariables.TryGetValue(variable, out var value) ? value : match.Value;
-        });
     }
 
-    private string GetUrl(Models.Request request)
+    private Result<string, Error> GetUrl(Model.Request request)
     {
         if (request.Url is not null)
         {
@@ -132,7 +125,7 @@ public class RequestExecutor: IDisposable
             }
             return _defaults.BaseUrl;
         }
-        throw new ArgumentException("URL is required");
+        return new Error("URL is required");
     }
 
     private async Task<object?> HandleApplicationJson(HttpContent content, int requestIndex)
@@ -154,60 +147,58 @@ public class RequestExecutor: IDisposable
         return sseItems;
     }
 
-    public ResponseWrapper Execute(Models.Request request, int requestIndex)
+    public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex)
     {
-        var url = ResolveVariables(GetUrl(request));
-        if (string.IsNullOrEmpty(url))
+        return GetUrl(request).Map(ResolveVariables).Then<ResponseWrapper>(url =>
         {
-            throw new ArgumentException("URL is required");
-        }
-        var method = new HttpMethod(request.Method.ToUpperInvariant());
-        var uri = ApplyQuery(url, request.Query);
+            var method = new HttpMethod(request.Method.ToUpperInvariant());
+            var uri = ApplyQuery(url, request.Query);
 
-        using var httpRequest = new HttpRequestMessage(method, uri);
-        ApplyHeaders(httpRequest, _defaults?.Headers);
-        ApplyHeaders(httpRequest, request.Headers);
-        if (!string.IsNullOrEmpty(request.Body) && method.AllowsRequestBody())
-        {
-            httpRequest.Content = new StringContent(ResolveVariables(request.Body));
-            var contentType = request.ContentType ?? _defaults?.ContentType;
-            if (!string.IsNullOrEmpty(contentType))
+            using var httpRequest = new HttpRequestMessage(method, uri);
+            ApplyHeaders(httpRequest, _defaults?.Headers);
+            ApplyHeaders(httpRequest, request.Headers);
+            if (!string.IsNullOrEmpty(request.Body) && method.AllowsRequestBody())
             {
-                httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+                httpRequest.Content = new StringContent(ResolveVariables(request.Body));
+                var contentType = request.ContentType ?? _defaults?.ContentType;
+                if (!string.IsNullOrEmpty(contentType))
+                {
+                    httpRequest.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
+                }
             }
-        }
-        var authentication = request.Authentication ?? _defaults?.Authentication;
-        if (authentication is ApiKeyAuthentication apiKey)
-        {
-            var headerName = apiKey.Header switch
+            var authentication = request.Authentication ?? _defaults?.Authentication;
+            if (authentication is ApiKeyAuthentication apiKey)
             {
-                var v when string.IsNullOrEmpty(v) => "X-Api-Key",
-                _ => apiKey.Header!
-            };
-            var headerValue = apiKey.Prefix switch
+                var headerName = apiKey.Header switch
+                {
+                    var v when string.IsNullOrEmpty(v) => "X-Api-Key",
+                    _ => apiKey.Header!
+                };
+                var headerValue = apiKey.Prefix switch
+                {
+                    var v when string.IsNullOrWhiteSpace(v) => apiKey.Key,
+                    _ => $"{apiKey.Prefix} {apiKey.Key}"
+                };
+                httpRequest.Headers.Add(headerName, headerValue);
+            }
+            else if (authentication is AzureCredentialsAuthentication azure)
             {
-                var v when string.IsNullOrWhiteSpace(v) => apiKey.Key,
-                _ => $"{apiKey.Prefix} {apiKey.Key}"
+                var credentials = new DefaultAzureCredential();
+                var token = credentials.GetToken(new TokenRequestContext(azure.Scopes));
+                httpRequest.Headers.Add("Authorization", $"Bearer {token.Token}");
+            }
+
+            using var response = _client.Send(httpRequest);
+
+            var responseContentType = response.Content.Headers.ContentType?.MediaType;
+            object? content = responseContentType switch
+            {
+                "application/json" => HandleApplicationJson(response.Content, requestIndex).GetAwaiter().GetResult(),
+                "text/event-stream" => HandleSSE(response.Content).GetAwaiter().GetResult(),
+                _ => null
             };
-            httpRequest.Headers.Add(headerName, headerValue);
-        }
-        else if (authentication is AzureCredentialsAuthentication azure)
-        {
-            var credentials = new DefaultAzureCredential();
-            var token = credentials.GetToken(new TokenRequestContext(azure.Scopes));
-            httpRequest.Headers.Add("Authorization", $"Bearer {token.Token}");
-        }
-
-        using var response = _client.Send(httpRequest);
-
-        var responseContentType = response.Content.Headers.ContentType?.MediaType;
-        object? content = responseContentType switch
-        {
-            "application/json" => HandleApplicationJson(response.Content, requestIndex).GetAwaiter().GetResult(),
-            "text/event-stream" => HandleSSE(response.Content).GetAwaiter().GetResult(),
-            _ => null
-        };
-        return new((int)response.StatusCode, content);
+            return new ResponseWrapper((int)response.StatusCode, content);
+        });
     }
 
     public void Dispose()
