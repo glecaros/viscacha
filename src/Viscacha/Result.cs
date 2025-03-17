@@ -23,4 +23,22 @@ public abstract record Result<T, E>(bool IsSuccess)
         Err err => new Result<U, E>.Err(err.Error),
         _ => throw new InvalidOperationException("Invalid result type") // Unreachable
     };
+
+    public T Unwrap()
+    {
+        return this switch
+        {
+            Ok ok => ok.Value,
+            _ => throw new InvalidOperationException("Unwrapping an error result"),
+        };
+    }
+
+    public E UnwrapError()
+    {
+        return this switch
+        {
+            Err err => err.Error,
+            _ => throw new InvalidOperationException("Unwrapping a success result"),
+        };
+    }
 }

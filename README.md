@@ -53,8 +53,8 @@ requests:
 
 ### Variable Substitution
 
-- Environment variables: `${VARIABLE_NAME}`
-- Command-line variables: `{{variableName}}`
+- Environment variables: `${env:VARIABLE_NAME}`
+- Command-line variables: `${variableName}`
 - Response variables: `#{r0.propertyName}` (where `r0` is the response from the first request)
 
 ### Authentication Examples

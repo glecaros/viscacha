@@ -9,7 +9,4 @@ public static partial class Constants
 
     [GeneratedRegex(@"#\{([^}]+)\}")]
     public static partial Regex ResponseVariableRegex { get; }
-
-    [GeneratedRegex(@"\{\{([^}]+)\}\}")]
-    public static partial Regex CommandLineVariableRegex { get; }
 }

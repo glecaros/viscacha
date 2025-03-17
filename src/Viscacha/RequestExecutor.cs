@@ -35,8 +35,9 @@ public class RequestExecutor: IDisposable
     private readonly Dictionary<string, JsonElement> _responses = new();
     private readonly Defaults? _defaults;
 
-    public RequestExecutor(Defaults? defaults)
+    public RequestExecutor(Defaults? defaults = null, HttpClient? client = null)
     {
+        _client = client ?? new();
         _defaults = defaults;
     }
 

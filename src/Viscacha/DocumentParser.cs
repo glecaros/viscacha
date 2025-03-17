@@ -14,13 +14,17 @@ public class DocumentParser
     public DocumentParser(Dictionary<string, string> variables)
     {
         _parser = new YamlParser();
-        _parser.AddVariableResolver(Constants.EnvironmentVariableRegex, variable => Environment.GetEnvironmentVariable(variable) ?? "");
-        _parser.AddVariableResolver(Constants.CommandLineVariableRegex, ResolveVariableValue);
+        _parser.AddVariableResolver(Constants.EnvironmentVariableRegex, ResolveVariableValue);
         _variables = variables;
     }
 
     private string ResolveVariableValue(string variableName)
     {
+        if (variableName.StartsWith("env:"))
+        {
+            return Environment.GetEnvironmentVariable(variableName[4..]) ?? string.Empty;
+        }
+
         if (_variables.TryGetValue(variableName, out var value))
         {
             return value;
@@ -80,8 +84,8 @@ public class DocumentParser
                     doc.Defaults?.Import,
                     extraDefaults?.BaseUrl ?? doc.Defaults?.BaseUrl ?? importedDefaults?.BaseUrl,
                     extraDefaults?.Authentication ?? doc.Defaults?.Authentication ?? importedDefaults?.Authentication,
-                    extraDefaults?.Headers.Merge(doc.Defaults?.Headers.Merge(importedDefaults?.Headers)),
-                    extraDefaults?.Query.Merge(doc.Defaults?.Query.Merge(importedDefaults?.Query)),
+                    (extraDefaults?.Headers).Merge((doc.Defaults?.Headers).Merge(importedDefaults?.Headers)),
+                    (extraDefaults?.Query).Merge((doc.Defaults?.Query).Merge(importedDefaults?.Query)),
                     extraDefaults?.ContentType ?? doc.Defaults?.ContentType ?? importedDefaults?.ContentType
                 ),
                 doc.Requests
