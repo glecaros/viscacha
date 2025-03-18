@@ -1,0 +1,32 @@
+name: Publish CLI to NuGet
+
+on:
+  push:
+    tags:
+      - 'cli/v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal --configuration Release
+      - name: Update version
+        run: |
+          NEW_VERSION=${GITHUB_REF#refs/tags/cli/v}
+          echo "Updating project version to $NEW_VERSION"
+          # Update version in all csproj files; adjust path if necessary
+          sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|g" src/Viscacha.CLI/Viscacha.CLI.csproj
+      - name: Pack
+        run: dotnet pack --no-build --configuration Release -o ./artifacts src/Viscacha.CLI/Viscacha.CLI.csproj
+      - name: Publish to NuGet
+        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
