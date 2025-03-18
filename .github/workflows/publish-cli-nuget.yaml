@@ -27,6 +27,6 @@ jobs:
           # Update version in all csproj files; adjust path if necessary
           sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|g" src/Viscacha.CLI/Viscacha.CLI.csproj
       - name: Pack
-        run: dotnet pack --no-build --configuration Release -o ./artifacts
+        run: dotnet pack --no-build --configuration Release -o ./artifacts src/Viscacha.CLI/Viscacha.CLI.csproj
       - name: Publish to NuGet
         run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
