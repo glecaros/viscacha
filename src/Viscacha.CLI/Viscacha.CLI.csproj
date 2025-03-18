@@ -11,11 +11,21 @@
     <ToolCommandName>viscacha</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
-    <Version>1.0.0</Version>
+    <Version>0.1.0</Version>
     <Authors>Gerardo Lecaros</Authors>
+    <RepositoryUrl>https://github.com/glecaros/viscacha</RepositoryUrl>
     <Description>A tool for testing HTTP APIs using YAML definitions</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright (c) Gerardo Lecaros 2025</Copyright>
+
   </PropertyGroup>
+
+  <ItemGroup>
+      <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+      <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="dotenv.net" Version="3.2.1" />
