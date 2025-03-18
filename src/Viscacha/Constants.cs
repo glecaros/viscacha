@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ApiTester;
+namespace Viscacha;
 
 public static partial class Constants
 {
@@ -9,7 +9,4 @@ public static partial class Constants
 
     [GeneratedRegex(@"#\{([^}]+)\}")]
     public static partial Regex ResponseVariableRegex { get; }
-
-    [GeneratedRegex(@"\{\{([^}]+)\}\}")]
-    public static partial Regex CommandLineVariableRegex { get; }
 }

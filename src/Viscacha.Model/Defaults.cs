@@ -1,4 +1,6 @@
-namespace ApiTester.Models;
+using System.Collections.Generic;
+
+namespace Viscacha.Model;
 
 public record Defaults(
     string? Import,
@@ -11,5 +13,3 @@ public record Defaults(
 {
     public static Defaults Empty => new(null, null, null, null, null, null);
 };
-
-public record Document(Defaults? Defaults, List<Request> Requests);

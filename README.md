@@ -1,4 +1,4 @@
-# API Tester CLI
+# Viscacha CLI
 
 A simple command-line tool for quickly testing REST API endpoints defined in YAML files. It supports variable substitution, authentication, and response handling, making it easy to automate and test API interactions.
 
@@ -15,13 +15,13 @@ A simple command-line tool for quickly testing REST API endpoints defined in YAM
 ## Usage
 
 ```bash
-api-tester <yaml-file> [--var name=value ...]
+viscacha <yaml-file> [--var name=value ...]
 ```
 
 ### Example
 
 ```bash
-api-tester requests.yaml --var userId=123 --var token=abcdef
+viscacha requests.yaml --var userId=123 --var token=abcdef
 ```
 
 ### YAML File Structure
@@ -53,8 +53,8 @@ requests:
 
 ### Variable Substitution
 
-- Environment variables: `${VARIABLE_NAME}`
-- Command-line variables: `{{variableName}}`
+- Environment variables: `${env:VARIABLE_NAME}`
+- Command-line variables: `${variableName}`
 - Response variables: `#{r0.propertyName}` (where `r0` is the response from the first request)
 
 ### Authentication Examples
@@ -91,7 +91,7 @@ defaults:
 Additionally, defaults can be imported from the command line:
 
 ```bash
-api-tester <request-file> --defaults <defaults-file>
+viscacha <request-file> --defaults <defaults-file>
 ```
 
 If defaults are provided using multiple mechanisms, the order of precedence is as follows: first, those provided via the command line, then those embedded in the file, and finally those imported in the file.

@@ -1,6 +1,6 @@
 using YAYL.Attributes;
 
-namespace ApiTester.Models;
+namespace Viscacha.Model;
 
 [YamlPolymorphic("type")]
 [YamlDerivedType("api-key", typeof(ApiKeyAuthentication))]
