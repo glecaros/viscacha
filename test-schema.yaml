@@ -1,0 +1,42 @@
+variables:
+  var1: value
+  var2: value
+configurations:
+  - name: Azure
+    path: ./configurations/azure-defaults.yaml
+  - name: OpenAI
+    path: ./configurations/openai-defaults.yaml
+tests:
+  - name: Basic text
+    variables:
+      var1: value
+      var2: value
+    request-file: ./requests/basic-text.yaml
+    configurations:
+      - Azure
+      - OpenAI
+    validations:
+      - type: status
+        target: # optional, defaults to all
+          type: all
+        status: 200
+      - type: path
+        target:
+          type: multiple
+          indices: [0, 1]
+        baseline: OpenAI
+        ignore-paths:
+          - tool_choice
+      - type: format
+        target:
+          type: single
+          index: 0
+        format: json
+        path: output[0].content[0].text
+      - type: semantic
+        target:
+          type: single
+          index: 0
+        provider: phi-3
+        path: output[0].content[0].text
+        expectation: "The text should be a haiku about the user's favorite color."
