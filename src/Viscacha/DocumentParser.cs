@@ -112,6 +112,10 @@ public class DocumentParser
         }
     }
 
+}
+
+public static class Util
+{
     public static Dictionary<TKey, TValue>? Merge<TKey, TValue>(this Dictionary<TKey, TValue>? left, Dictionary<TKey, TValue>? right) where TKey : notnull
     {
         if (left is null)

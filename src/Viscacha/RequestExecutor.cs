@@ -29,17 +29,10 @@ internal record SSEEvent(
     [property: JsonPropertyName("event")] string EventName,
     [property: JsonPropertyName("data")] string Data);
 
-public class RequestExecutor: IDisposable
+public class RequestExecutor(Defaults? defaults = null)
 {
-    private readonly HttpClient _client = new();
     private readonly Dictionary<string, JsonElement> _responses = new();
-    private readonly Defaults? _defaults;
-
-    public RequestExecutor(Defaults? defaults = null, HttpClient? client = null)
-    {
-        _client = client ?? new();
-        _defaults = defaults;
-    }
+    private readonly Defaults? _defaults = defaults;
 
     private Uri ApplyQuery(string url, Dictionary<string, string>? query)
     {
@@ -148,7 +141,9 @@ public class RequestExecutor: IDisposable
         return sseItems;
     }
 
-    public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex)
+    public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex) => Execute(new(), request, requestIndex);
+
+    public Result<ResponseWrapper, Error> Execute(HttpClient client, Model.Request request, int requestIndex)
     {
         return GetUrl(request).Map(ResolveVariables).Then<ResponseWrapper>(url =>
         {
@@ -189,7 +184,7 @@ public class RequestExecutor: IDisposable
                 httpRequest.Headers.Add("Authorization", $"Bearer {token.Token}");
             }
 
-            using var response = _client.Send(httpRequest);
+            using var response = client.Send(httpRequest);
 
             var responseContentType = response.Content.Headers.ContentType?.MediaType;
             object? content = responseContentType switch
@@ -200,10 +195,5 @@ public class RequestExecutor: IDisposable
             };
             return new ResponseWrapper((int)response.StatusCode, content);
         });
-    }
-
-    public void Dispose()
-    {
-        _client.Dispose();
     }
 }

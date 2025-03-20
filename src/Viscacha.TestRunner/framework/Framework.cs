@@ -6,11 +6,14 @@ using System.Threading.Tasks;
 using Microsoft.Testing.Extensions.TrxReport.Abstractions;
 using Microsoft.Testing.Platform.Capabilities.TestFramework;
 using Microsoft.Testing.Platform.CommandLine;
-using Microsoft.Testing.Platform.Extensions.CommandLine;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.OutputDevice;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
+using Microsoft.Testing.Platform.Requests;
 using Microsoft.Testing.Platform.Services;
+using Microsoft.Testing.Platform.TestHost;
+using Viscacha.Model.Test;
+using YAYL;
 
 namespace Viscacha.TestRunner.Framework;
 
@@ -43,7 +46,9 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
 
     public Type[] DataTypesProduced => throw new NotImplementedException();
 
+    private readonly YamlParser _yamlParser = new();
     private readonly ICommandLineOptions _commandLineOptions;
+    private readonly Dictionary<SessionUid, Session> _sessions = new();
 
     public TestingFramework(IServiceProvider serviceProvider)
     {
@@ -55,31 +60,76 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
         {
             throw new InvalidOperationException("Command line options not found.");
         }
-        // Initialize any services or dependencies here
     }
-
-    public Task<CloseTestSessionResult> CloseTestSessionAsync(CloseTestSessionContext context)
-    {
-        return Task.FromResult(new CloseTestSessionResult{ IsSuccess = true });
-    }
-
-    public Task<CreateTestSessionResult> CreateTestSessionAsync(CreateTestSessionContext context)
-    {
-        return Task.FromResult(new CreateTestSessionResult{ IsSuccess = true });
-    }
-
-    public Task ExecuteRequestAsync(ExecuteRequestContext context)
+    public async Task<CreateTestSessionResult> CreateTestSessionAsync(CreateTestSessionContext context)
     {
         _commandLineOptions.TryGetOptionArgumentList(CommandLineOptions.InputFileOption, out var inputFileArguments);
         if (inputFileArguments is not [string inputFile])
         {
-            throw new InvalidOperationException($"The {CommandLineOptions.InputFileOption} option is required.");
+            return new()
+            {
+                ErrorMessage = $"The {CommandLineOptions.InputFileOption} option is required.",
+                IsSuccess = false,
+            };
         }
-        Console.WriteLine($"Input file: {inputFile}");
+        var testSuite = await _yamlParser.ParseFileAsync<Suite>(inputFile);
+        if (testSuite == null)
+        {
+            return new()
+            {
+                ErrorMessage = $"Failed to parse the input file: {inputFile}",
+                IsSuccess = false,
+            };
+        }
 
-        Console.WriteLine(context.Request.ToString());
+        var session = new Session(context.SessionUid, inputFile, testSuite);
+        _sessions.Add(session.Uid, session);
+        return new()
+        {
+            IsSuccess = true
+        };
+    }
 
-        return Task.CompletedTask;
+    public Task<CloseTestSessionResult> CloseTestSessionAsync(CloseTestSessionContext context)
+    {
+        _sessions.Remove(context.SessionUid);
+        return Task.FromResult(new CloseTestSessionResult{ IsSuccess = true });
+    }
+
+
+    public async Task ExecuteRequestAsync(ExecuteRequestContext context)
+    {
+        _sessions.TryGetValue(context.Request.Session.SessionUid, out var session);
+        if (session == null)
+        {
+            throw new InvalidOperationException("Session not found.");
+        }
+        var suite = session.Suite;
+        switch (context.Request)
+        {
+            case DiscoverTestExecutionRequest discoverRequest:
+                try
+                {
+
+                    var testCases = suite.Tests.Select(t => new TestNode
+                    {
+                        Uid = $"{session.FileName}.{t.Name}",
+                        DisplayName = t.Name,
+                        Properties = new PropertyBag(DiscoveredTestNodeStateProperty.CachedInstance),
+                    });
+                    foreach (var testCase in testCases)
+                    {
+                        await context.MessageBus.PublishAsync(this, new TestNodeUpdateMessage(discoverRequest.Session.SessionUid, testCase));
+                    }
+                }
+                finally
+                {
+                    context.Complete();
+                }
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported request type: {context.Request.GetType().Name}");
+        }
     }
 
     public Task<bool> IsEnabledAsync() => Task.FromResult(true);

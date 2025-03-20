@@ -18,5 +18,10 @@
     <PackageReference Include="NUnit" Version="4.3.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Viscacha.Model\Viscacha.Model.csproj" />
+    <ProjectReference Include="..\Viscacha\Viscacha.csproj" />
+  </ItemGroup>
+
 
 </Project>

@@ -5,5 +5,5 @@ public record ConfigurationReference(
     string Path
 )
 {
-    public bool Baseline { get; init; }
+    public bool? Baseline { get; init; }
 };
