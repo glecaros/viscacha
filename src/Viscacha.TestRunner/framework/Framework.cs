@@ -110,7 +110,6 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
             case DiscoverTestExecutionRequest discoverRequest:
                 try
                 {
-
                     var testCases = suite.Tests.Select(t => new TestNode
                     {
                         Uid = $"{session.FileName}.{t.Name}",
@@ -121,6 +120,16 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
                     {
                         await context.MessageBus.PublishAsync(this, new TestNodeUpdateMessage(discoverRequest.Session.SessionUid, testCase));
                     }
+                }
+                finally
+                {
+                    context.Complete();
+                }
+                break;
+            case RunTestExecutionRequest runRequest:
+                try
+                {
+
                 }
                 finally
                 {
