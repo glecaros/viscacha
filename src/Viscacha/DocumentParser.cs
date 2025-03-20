@@ -44,7 +44,7 @@ public class DocumentParser
             return new Error($"Defaults file not found: {defaultsFile.FullName}");
         }
 
-        Document? doc = null;
+        Document? doc;
         if (_parser.TryParseFile<Document>(file.FullName, out var document) && document is not null)
         {
             doc = document;
@@ -111,7 +111,6 @@ public class DocumentParser
             return false;
         }
     }
-
 }
 
 public static class Util

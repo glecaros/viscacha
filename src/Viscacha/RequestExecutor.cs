@@ -141,7 +141,11 @@ public class RequestExecutor(Defaults? defaults = null)
         return sseItems;
     }
 
-    public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex) => Execute(new(), request, requestIndex);
+    public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex)
+    {
+        using HttpClient client = new();
+        return Execute(client, request, requestIndex);
+    }
 
     public Result<ResponseWrapper, Error> Execute(HttpClient client, Model.Request request, int requestIndex)
     {

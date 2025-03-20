@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using Azure;
 using Viscacha.Model;
 using Viscacha.Model.Test;
 
@@ -11,6 +12,9 @@ public record ValidationError(string Message);
 
 internal record TestVariant(ConfigurationReference Configuration, Document RequestDocument, bool Baseline);
 internal record TestDetails(Test Test, List<TestVariant> Variants);
+
+internal record TestVariantResult(ConfigurationReference Configuration, List<ResponseWrapper> Responses, bool Baseline);
+internal record TestResult(Test Test, List<TestVariantResult> Variants);
 
 public class Runner(Suite suite, HttpClient? httpClient = null) : IDisposable
 {
@@ -49,26 +53,54 @@ public class Runner(Suite suite, HttpClient? httpClient = null) : IDisposable
 
     public void Run()
     {
+        using HttpClient client = new();
         foreach (var test in _testDetails)
         {
+            List<TestVariantResult> testVariantResults = [];
+            foreach (var (configuration, doc, baseline) in test.Variants)
+            {
+                var executor = new RequestExecutor(doc.Defaults);
+                var responses = new List<ResponseWrapper>();
+                foreach (var request in doc.Requests)
+                {
+                    var result = executor.Execute(client, request, doc.Requests.IndexOf(request));
+                    if (result is Result<ResponseWrapper, Error>.Err error)
+                    {
+                        throw new Exception($"Error executing request: {error.Error.Message}");
+                    }
+                    var response = result.Unwrap();
+                    if (response is null)
+                    {
+                        throw new Exception("Response is null");
+                    }
+                    responses.Add(response);
+                }
+                testVariantResults.Add(new(configuration, responses, baseline));
+            }
+            foreach (var validation in test.Test.Validations)
+            {
+                switch (validation)
+                {
+                    case StatusValidation statusValidation:
+                    {
+                        break;
+                    }
+                    case PathValidation pathValidation:
+                    {
+                        break;
+                    }
+                    case FormatValidation formatValidation:
+                    {
+                        break;
+                    }
+                    case SemanticValidation semanticValidation:
+                    {
+                        break;
+                    }
+                }
+            }
 
         }
-        // _suite.Configuration
-        // foreach (var test in _suite.Tests)
-        // {
-        //     RequestExecutor executor = new();
-        //     var request = test.Request;
-        //     var response = _httpClient.Send(request);
-        //     var expected = test.Expected;
-        //     if (response.Code != expected.Code)
-        //     {
-        //         throw new Exception($"Expected status code {expected.Code}, got {response.Code}");
-        //     }
-        //     if (response.Content != expected.Content)
-        //     {
-        //         throw new Exception($"Expected content {expected.Content}, got {response.Content}");
-        //     }
-        // }
     }
 
     public void Dispose()
