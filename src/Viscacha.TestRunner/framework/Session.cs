@@ -22,6 +22,7 @@ internal sealed class Session(SessionUid uid)
 
     private async Task<Result<Error>> InitAsyncInternal(string path, CancellationToken cancellationToken)
     {
+        var suiteFileDirectory = new FileInfo(path).DirectoryName ?? string.Empty;
         var parser = new YamlParser();
         try {
             var suite = await parser.ParseFileAsync<Suite>(path, cancellationToken).ConfigureAwait(false);
@@ -32,21 +33,23 @@ internal sealed class Session(SessionUid uid)
             Dictionary<string, (FileInfo File, bool Baseline)> configurations = [];
             foreach (var configuration in suite.Configurations)
             {
-                if (!File.Exists(configuration.Path))
+                var filePath = Path.Combine(suiteFileDirectory, configuration.Path);
+                if (!File.Exists(filePath))
                 {
-                    return new Error($"File for configuration {configuration.Name} not found: {configuration.Path}");
+                    return new Error($"File for configuration {configuration.Name} not found: {filePath}");
                 }
-                configurations[configuration.Name] = (new FileInfo(configuration.Path), configuration.Baseline ?? false);
+                configurations[configuration.Name] = (new FileInfo(filePath), configuration.Baseline ?? false);
             }
             List<FrameworkTest> tests = [];
             foreach (var test in suite.Tests)
             {
                 var variables = suite.Variables.Merge(test.Variables) ?? [];
                 var documentParser = new DocumentParser(variables);
+                var requestFilePath = Path.Combine(suiteFileDirectory, test.RequestFile);
                 FileInfo? testFile;
-                if (File.Exists(test.RequestFile))
+                if (File.Exists(requestFilePath))
                 {
-                    testFile = new FileInfo(test.RequestFile);
+                    testFile = new FileInfo(requestFilePath);
                 }
                 else
                 {

@@ -12,7 +12,7 @@ using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.Requests;
 using Microsoft.Testing.Platform.Services;
 using Microsoft.Testing.Platform.TestHost;
-using Viscacha.Model.Test;
+using Viscacha.Model;
 using YAYL;
 
 namespace Viscacha.TestRunner.Framework;
@@ -72,17 +72,15 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
                 IsSuccess = false,
             };
         }
-        var testSuite = await _yamlParser.ParseFileAsync<Suite>(inputFile);
-        if (testSuite == null)
+        var session = new Session(context.SessionUid);
+        if (await session.InitAsync(inputFile, context.CancellationToken).ConfigureAwait(false) is Result<Error>.Err error)
         {
             return new()
             {
-                ErrorMessage = $"Failed to parse the input file: {inputFile}",
+                ErrorMessage = error.Error.Message,
                 IsSuccess = false,
             };
         }
-
-        var session = new Session(context.SessionUid, inputFile, testSuite);
         _sessions.Add(session.Uid, session);
         return new()
         {
@@ -96,6 +94,20 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
         return Task.FromResult(new CloseTestSessionResult{ IsSuccess = true });
     }
 
+    public async Task DiscoverTestsAsync(Session session, ExecuteRequestContext context, DiscoverTestExecutionRequest request)
+    {
+        // var testCases = suite.Tests.Select(t => new TestNode
+        //             {
+        //                 Uid = $"{session.FileName}.{t.Name}",
+        //                 DisplayName = t.Name,
+        //                 Properties = new PropertyBag(DiscoveredTestNodeStateProperty.CachedInstance),
+        //             });
+        //             foreach (var testCase in testCases)
+        //             {
+        //                 await context.MessageBus.PublishAsync(this, new TestNodeUpdateMessage(discoverRequest.Session.SessionUid, testCase));
+        //             }
+        throw new NotImplementedException();
+    }
 
     public async Task ExecuteRequestAsync(ExecuteRequestContext context)
     {
@@ -104,22 +116,13 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
         {
             throw new InvalidOperationException("Session not found.");
         }
-        var suite = session.Suite;
         switch (context.Request)
         {
             case DiscoverTestExecutionRequest discoverRequest:
                 try
                 {
-                    var testCases = suite.Tests.Select(t => new TestNode
-                    {
-                        Uid = $"{session.FileName}.{t.Name}",
-                        DisplayName = t.Name,
-                        Properties = new PropertyBag(DiscoveredTestNodeStateProperty.CachedInstance),
-                    });
-                    foreach (var testCase in testCases)
-                    {
-                        await context.MessageBus.PublishAsync(this, new TestNodeUpdateMessage(discoverRequest.Session.SessionUid, testCase));
-                    }
+                    await DiscoverTestsAsync(session, context, discoverRequest).ConfigureAwait(false);
+
                 }
                 finally
                 {

@@ -15,13 +15,16 @@
     <PackageReference Include="Microsoft.Testing.Platform" Version="1.6.3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="1.6.3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="1.6.3" />
-    <PackageReference Include="NUnit" Version="4.3.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Viscacha.Model\Viscacha.Model.csproj" />
     <ProjectReference Include="..\Viscacha\Viscacha.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Viscacha.TestRunner.Tests" />
+</ItemGroup>
 
 
 </Project>
