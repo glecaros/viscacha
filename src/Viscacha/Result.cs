@@ -64,6 +64,13 @@ public abstract record Result<E>(bool IsSuccess)
         _ => throw new InvalidOperationException("Invalid result type") // Unreachable
     };
 
+    public Result<U> Else<U>(Func<E, Result<U>> map) => this switch
+    {
+        Ok _ => new Result<U>.Ok(),
+        Err err => map(err.Error),
+        _ => throw new InvalidOperationException("Invalid result type") // Unreachable
+    };
+
     public E UnwrapError()
     {
         return this switch
