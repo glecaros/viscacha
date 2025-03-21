@@ -52,11 +52,11 @@ public class DocumentParser
         }
 
         Document? doc;
-        if (await _parser.TryParseFileAsync<Document>(file.FullName, cancellationToken) is Result<Document?, Error>.Ok documentResult and { Value: not null})
+        if (await _parser.TryParseFileAsync<Document>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Document?, Error>.Ok documentResult and { Value: not null})
         {
             doc = documentResult.Value;
         }
-        else if (await _parser.TryParseFileAsync<Request>(file.FullName, cancellationToken) is Result<Request?, Error>.Ok requestResult and { Value: not null })
+        else if (await _parser.TryParseFileAsync<Request>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Request?, Error>.Ok requestResult and { Value: not null })
         {
             doc = new Document(Defaults.Empty, new List<Request> { requestResult.Value });
         }
@@ -68,7 +68,7 @@ public class DocumentParser
         Defaults? extraDefaults = null;
         if (defaultsFile is not null)
         {
-            if (await _parser.TryParseFileAsync<Defaults>(defaultsFile.FullName, cancellationToken) is Result<Defaults?, Error>.Ok defaultsResult and { Value: not null })
+            if (await _parser.TryParseFileAsync<Defaults>(defaultsFile.FullName, cancellationToken).ConfigureAwait(false) is Result<Defaults?, Error>.Ok defaultsResult and { Value: not null })
             {
                 extraDefaults = defaultsResult.Value;
             }
@@ -82,7 +82,7 @@ public class DocumentParser
         if (doc.Defaults?.Import is string importFile)
         {
             var importPath = Path.Combine(file.Directory?.FullName ?? ".", importFile);
-            if (await _parser.TryParseFileAsync<Defaults>(importPath, cancellationToken) is Result<Defaults?, Error>.Ok importResult and { Value: not null })
+            if (await _parser.TryParseFileAsync<Defaults>(importPath, cancellationToken).ConfigureAwait(false) is Result<Defaults?, Error>.Ok importResult and { Value: not null })
             {
                 importedDefaults = importResult.Value;
             }

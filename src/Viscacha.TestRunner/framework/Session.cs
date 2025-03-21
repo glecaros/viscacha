@@ -59,7 +59,7 @@ internal sealed class Session(SessionUid uid)
                     {
                         return new Error($"Configuration {variant} required by test {test.Name} not found");
                     }
-                    switch (await documentParser.FromFileAsync(testFile, configuration.File,  cancellationToken))
+                    switch (await documentParser.FromFileAsync(testFile, configuration.File,  cancellationToken).ConfigureAwait(false))
                     {
                         case Result<Document, Error>.Err error:
                             return error.Error;
