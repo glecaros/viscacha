@@ -44,9 +44,8 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
 
     public string Description => "Runner for tests written with Viscacha files.";
 
-    public Type[] DataTypesProduced => throw new NotImplementedException();
+    public Type[] DataTypesProduced => [typeof(TestNodeUpdateMessage)];
 
-    private readonly YamlParser _yamlParser = new();
     private readonly ICommandLineOptions _commandLineOptions;
     private readonly Dictionary<SessionUid, Session> _sessions = new();
 
@@ -94,20 +93,6 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
         return Task.FromResult(new CloseTestSessionResult{ IsSuccess = true });
     }
 
-    public async Task DiscoverTestsAsync(Session session, ExecuteRequestContext context, DiscoverTestExecutionRequest request)
-    {
-        // var testCases = suite.Tests.Select(t => new TestNode
-        //             {
-        //                 Uid = $"{session.FileName}.{t.Name}",
-        //                 DisplayName = t.Name,
-        //                 Properties = new PropertyBag(DiscoveredTestNodeStateProperty.CachedInstance),
-        //             });
-        //             foreach (var testCase in testCases)
-        //             {
-        //                 await context.MessageBus.PublishAsync(this, new TestNodeUpdateMessage(discoverRequest.Session.SessionUid, testCase));
-        //             }
-        throw new NotImplementedException();
-    }
 
     public async Task ExecuteRequestAsync(ExecuteRequestContext context)
     {
@@ -118,10 +103,10 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
         }
         switch (context.Request)
         {
-            case DiscoverTestExecutionRequest discoverRequest:
+            case DiscoverTestExecutionRequest _:
                 try
                 {
-                    await DiscoverTestsAsync(session, context, discoverRequest).ConfigureAwait(false);
+                    await session.DiscoverTestsAsync(this, context, context.CancellationToken).ConfigureAwait(false);
 
                 }
                 finally
@@ -129,9 +114,10 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
                     context.Complete();
                 }
                 break;
-            case RunTestExecutionRequest runRequest:
+            case RunTestExecutionRequest _:
                 try
                 {
+                    await session.RunTestsAsync(this, context, context.CancellationToken).ConfigureAwait(false);
 
                 }
                 finally

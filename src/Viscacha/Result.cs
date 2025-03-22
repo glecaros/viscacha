@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Viscacha;
 
@@ -20,6 +21,13 @@ public abstract record Result<T, E>(bool IsSuccess)
     public Result<U, E> Then<U>(Func<T, Result<U, E>> map) => this switch
     {
         Ok ok => map(ok.Value),
+        Err err => new Result<U, E>.Err(err.Error),
+        _ => throw new InvalidOperationException("Invalid result type") // Unreachable
+    };
+
+    public async Task<Result<U, E>> Then<U>(Func<T, Task<Result<U, E>>> map) => this switch
+    {
+        Ok ok => await map(ok.Value),
         Err err => new Result<U, E>.Err(err.Error),
         _ => throw new InvalidOperationException("Invalid result type") // Unreachable
     };

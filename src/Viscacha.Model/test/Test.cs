@@ -7,5 +7,5 @@ public record Test(
     Dictionary<string, string>? Variables,
     string RequestFile,
     List<string> Configurations,
-    List<Validation> Validations
+    List<ValidationDefinition> Validations
 );

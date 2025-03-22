@@ -8,14 +8,14 @@ namespace Viscacha.Model.Test;
 [YamlDerivedType("path", typeof(PathValidation))]
 [YamlDerivedType("format", typeof(FormatValidation))]
 [YamlDerivedType("semantic", typeof(SemanticValidation))]
-public abstract record Validation
+public abstract record ValidationDefinition
 {
     public Target? Target { get; init; }
 }
 
-public record StatusValidation(int Status) : Validation;
+public record StatusValidation(int Status) : ValidationDefinition;
 
-public record PathValidation(string Baseline) : Validation
+public record PathValidation(string Baseline) : ValidationDefinition
 {
     public List<string> IgnorePaths { get; init; } = new();
 }
@@ -25,6 +25,6 @@ public enum Format
     Json,
 }
 
-public record FormatValidation(Format Format, string Path) : Validation;
+public record FormatValidation(Format Format, string Path) : ValidationDefinition;
 
-public record SemanticValidation(string Provider, string Path, string Expectation) : Validation;
+public record SemanticValidation(string Provider, string Path, string Expectation) : ValidationDefinition;
