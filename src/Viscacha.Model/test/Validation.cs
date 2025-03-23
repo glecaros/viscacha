@@ -17,7 +17,7 @@ public record StatusValidation(int Status) : ValidationDefinition;
 
 public record PathValidation(string Baseline) : ValidationDefinition
 {
-    public List<string> IgnorePaths { get; init; } = new();
+    public HashSet<string> IgnorePaths { get; init; } = new();
 }
 
 public enum Format
