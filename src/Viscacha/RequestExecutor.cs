@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.ServerSentEvents;
@@ -24,7 +25,8 @@ internal static class HttpExtensions
 
 public record ResponseWrapper(
     [property: JsonPropertyName("code")] int Code,
-    [property: JsonPropertyName("content")] object? Content);
+    [property: JsonPropertyName("content")] object? Content,
+    [property: JsonPropertyName("headers")] Dictionary<string, List<string>> Headers);
 
 internal record SSEEvent(
     [property: JsonPropertyName("event")] string EventName,
@@ -201,6 +203,7 @@ public class RequestExecutor(Defaults? defaults = null)
 
             using var response = await client.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
+            var headers = response.Headers.ToDictionary(h => h.Key, h => h.Value.ToList());
             var responseContentType = response.Content.Headers.ContentType?.MediaType;
             object? content = responseContentType switch
             {
@@ -208,7 +211,7 @@ public class RequestExecutor(Defaults? defaults = null)
                 "text/event-stream" => await HandleSSEAsync(response.Content, cancellationToken),
                 _ => null
             };
-            return new ResponseWrapper((int)response.StatusCode, content);
+            return new ResponseWrapper((int)response.StatusCode, content, headers);
         });
     }
 }

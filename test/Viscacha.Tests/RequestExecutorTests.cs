@@ -218,6 +218,45 @@ public class RequestExecutorTests
         Assert.That(error.Message, Is.EqualTo("URL is required"));
     }
 
+    [Test]
+    public void Execute_CapturesResponseHeaders_InResponseWrapper()
+    {
+        Request request = new("GET", null, "/users", null, null, null, null, null);
+        _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]> {
+            ["Content-Type"] = ["application/json"],
+            ["X-Request-ID"] = ["abc123"],
+            ["Set-Cookie"] = ["session=xyz; path=/", "tracking=123; path=/api"]
+        });
+        _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
+
+        var result = _executor.Execute(request, 0);
+        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+
+        var response = result.Unwrap();
+        Assert.That(response.Headers, Is.Not.Null);
+        Assert.That(response.Headers.ContainsKey("X-Request-ID"), Is.True);
+        Assert.That(response.Headers["X-Request-ID"], Is.EqualTo(new List<string> { "abc123" }));
+        Assert.That(response.Headers.ContainsKey("Set-Cookie"), Is.True);
+        Assert.That(response.Headers["Set-Cookie"].Count, Is.EqualTo(2));
+        Assert.That(response.Headers["Set-Cookie"], Does.Contain("session=xyz; path=/"));
+        Assert.That(response.Headers["Set-Cookie"], Does.Contain("tracking=123; path=/api"));
+    }
+
+    [Test]
+    public void Execute_WithEmptyResponseHeaders_ReturnsEmptyHeadersDictionary()
+    {
+        Request request = new("GET", null, "/empty-headers", null, null, null, null, null);
+        _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]>());
+        _mockHttp.SetupResponse(HttpStatusCode.NoContent);
+
+        var result = _executor.Execute(request, 0);
+        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+
+        var response = result.Unwrap();
+        Assert.That(response.Headers, Is.Not.Null);
+        Assert.That(response.Headers.Count, Is.EqualTo(0));
+    }
+
 }
 
 public class MockHttpMessageHandler : HttpMessageHandler
@@ -231,6 +270,12 @@ public class MockHttpMessageHandler : HttpMessageHandler
     private HttpStatusCode _responseStatusCode = HttpStatusCode.OK;
     private object? _responseContent;
     private string _responseContentType = "application/json";
+    private Dictionary<string, string[]>? _responseHeaders;
+
+    public void SetupResponseHeaders(Dictionary<string, string[]> headers)
+    {
+        _responseHeaders = headers;
+    }
 
     public void SetupResponse(HttpStatusCode statusCode, object? content = null, string contentType = "application/json")
     {
@@ -252,6 +297,14 @@ public class MockHttpMessageHandler : HttpMessageHandler
         }
 
         var response = new HttpResponseMessage(_responseStatusCode);
+        if (_responseHeaders != null)
+        {
+            foreach (var header in _responseHeaders)
+            {
+                response.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
         if (_responseContent != null)
         {
             string content = _responseContent is string s
