@@ -135,7 +135,7 @@ internal sealed class Session(SessionUid uid)
         }
     }
 
-    private async Task<Result<List<ResponseWrapper>, Error>> ExecuteVariantAsync(HttpClient client, FrameworkTestVariant variant, CancellationToken cancellationToken)
+    private static async Task<Result<List<ResponseWrapper>, Error>> ExecuteVariantAsync(HttpClient client, FrameworkTestVariant variant, CancellationToken cancellationToken)
     {
         var executor = new RequestExecutor(variant.Request.Defaults);
         var responses = new List<ResponseWrapper>();

@@ -229,7 +229,7 @@ public class RequestExecutorTests
         });
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();
@@ -249,7 +249,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]>());
         _mockHttp.SetupResponse(HttpStatusCode.NoContent);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();
