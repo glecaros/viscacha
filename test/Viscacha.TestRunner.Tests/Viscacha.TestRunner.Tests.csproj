@@ -6,6 +6,7 @@
     <ImplicitUsings>false</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <NoWarn>TPEXP</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

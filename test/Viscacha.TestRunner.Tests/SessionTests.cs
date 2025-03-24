@@ -6,6 +6,10 @@ using Viscacha.TestRunner.Framework;
 using Viscacha.Model;
 using Microsoft.Testing.Platform.TestHost;
 using System.Collections.Generic;
+using Microsoft.Testing.Platform.Extensions.TestFramework;
+using Microsoft.Testing.Platform.Messages;
+using Microsoft.Testing.Platform.Extensions.Messages;
+using Microsoft.Testing.Platform.Requests;
 
 namespace Viscacha.TestRunner.Tests;
 
@@ -129,12 +133,11 @@ tests:
         CreateTestFile("config2.yaml", "base-url: https://api2.example.com");
         CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
 
-        var session = new Session(new SessionUid(Guid.NewGuid().ToString()));
+        Session session = new(new(Guid.NewGuid().ToString()));
         var result = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
 
         Assert.That(result is Result<Error>.Ok);
 
-        // Use reflection to access the private _tests field
         var testsField = typeof(Session).GetField("_tests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var tests = testsField?.GetValue(session) as List<FrameworkTest>;
 
@@ -143,6 +146,84 @@ tests:
         Assert.That(tests[0].Variants.Count, Is.EqualTo(2), "Test should have exactly two variants");
         Assert.That(tests[0].Variants[0].Name, Is.EqualTo("config1"));
         Assert.That(tests[0].Variants[1].Name, Is.EqualTo("config2"));
+    }
+
+    internal class MockDataProducer : IDataProducer
+    {
+        public Type[] DataTypesProduced => Array.Empty<Type>();
+
+        public string Uid => "mock-producer";
+
+        public string Version => "1.0";
+
+        public string DisplayName => "Mock Data Producer";
+
+        public string Description => "Mock implementation for testing.";
+
+        public Task<bool> IsEnabledAsync() => Task.FromResult(true);
+    }
+
+    internal class MockRequest : IRequest
+    {
+        public TestSessionContext Session { get; } = null!;
+    }
+
+    internal class MockMessageBus : IMessageBus
+    {
+        public List<IData> PublishedData { get; } = new();
+
+        public Task PublishAsync(IDataProducer dataProducer, IData data)
+        {
+            PublishedData.Add(data);
+            return Task.CompletedTask;
+        }
+    }
+
+    internal class MockRequestCompletionNotifier : IExecuteRequestCompletionNotifier
+    {
+        public bool IsCompleted { get; private set; } = false;
+
+        public void Complete()
+        {
+            IsCompleted = true;
+        }
+    }
+
+    [Test]
+    public async Task DiscoverTestsAsync_ValidRequestFile_ReturnsTestList()
+    {
+        var suiteContent = @"
+configurations:
+  - name: default
+    path: config.yaml
+tests:
+  - name: test1
+    request-file: request.yaml
+    configurations: [default]
+    validations: []
+";
+
+        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        CreateTestFile("config.yaml", "base-url: https://api.example.com");
+        CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
+
+        Session session = new(new(Guid.NewGuid().ToString()));
+        var initResult = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        Assert.That(initResult is Result<Error>.Ok);
+
+        MockDataProducer producer = new();
+        MockRequest request = new();
+        MockMessageBus messageBus = new();
+        MockRequestCompletionNotifier notifier = new();
+        ExecuteRequestContext context = new(request, messageBus, notifier, CancellationToken.None);
+
+        await session.DiscoverTestsAsync(producer, context, CancellationToken.None);
+
+        Assert.That(messageBus.PublishedData.Count, Is.EqualTo(1));
+        var publishedMessage = messageBus.PublishedData[0] as TestNodeUpdateMessage;
+        Assert.That(publishedMessage, Is.Not.Null);
+        Assert.That(publishedMessage!.TestNode.DisplayName, Is.EqualTo("test1"));
+        Assert.That(publishedMessage.TestNode.Uid.Value, Does.Contain("test1"));
     }
 
     private FileInfo CreateTestFile(string filename, string content)
