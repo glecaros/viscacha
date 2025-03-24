@@ -37,13 +37,12 @@ public class RequestExecutorTests
             ContentType: "application/json"
         );
 
-        _executor = new RequestExecutor(_defaults, _httpClient);
+        _executor = new(_defaults);
     }
 
     [TearDown]
     public void TearDown()
     {
-        _executor.Dispose();
         _httpClient.Dispose();
         _mockHttp.Dispose();
 
@@ -55,7 +54,7 @@ public class RequestExecutorTests
         Request request = new("GET", "https://api.test.com/users", null, null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();
@@ -70,7 +69,7 @@ public class RequestExecutorTests
         Request request = new("GET", null, "/users", null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
 
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
         Assert.That(_mockHttp.RequestUri?.ToString(), Is.EqualTo("https://api.example.com/users?api-version=1.0"));
@@ -92,7 +91,7 @@ public class RequestExecutorTests
             null);
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
 
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
         Assert.That(_mockHttp.RequestUri?.ToString(), Is.EqualTo("https://api.test.com/users?api-version=1.0&filter=active"));
@@ -114,7 +113,7 @@ public class RequestExecutorTests
             null);
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         Assert.That(_mockHttp?.Headers?.Contains("Custom-Header"), Is.True);
@@ -134,7 +133,7 @@ public class RequestExecutorTests
         Request request = new("GET", null, "/users", auth, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         Assert.That(_mockHttp?.Headers?.Contains("X-API-Key"), Is.True);
@@ -155,7 +154,7 @@ public class RequestExecutorTests
             "{\"name\":\"New User\"}");
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         Assert.That(_mockHttp.Method, Is.EqualTo(HttpMethod.Post));
@@ -169,7 +168,7 @@ public class RequestExecutorTests
         Request request = new ("GET", null, "/users/1", null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();
@@ -185,7 +184,7 @@ public class RequestExecutorTests
     {
         Request request1 = new ("GET", null, "/users/1", null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
-        _executor.Execute(request1, 0);
+        _executor.Execute(_httpClient, request1, 0);
 
         Request request2 = new(
             "POST",
@@ -198,7 +197,7 @@ public class RequestExecutorTests
             "{\"parentId\": #{r0.id}}");
         _mockHttp.SetupResponse(HttpStatusCode.Created);
 
-        var result = _executor.Execute(request2, 1);
+        var result = _executor.Execute(_httpClient, request2, 1);
 
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
         Assert.That(_mockHttp.RequestContent, Is.EqualTo("{\"parentId\": 1}"));
@@ -209,10 +208,10 @@ public class RequestExecutorTests
     public void Execute_WithMissingUrl_ReturnsError()
     {
         Defaults defaults = new (null, null, null, null, null, null);
-        RequestExecutor executor = new(defaults, _httpClient);
+        RequestExecutor executor = new(defaults);
         Request request = new ("GET", null, null, null, null, null, null, null);
 
-        var result = executor.Execute(request, 0);
+        var result = executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Err);
 
         var error = result.UnwrapError();
@@ -230,7 +229,7 @@ public class RequestExecutorTests
         });
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();
@@ -250,7 +249,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]>());
         _mockHttp.SetupResponse(HttpStatusCode.NoContent);
 
-        var result = _executor.Execute(request, 0);
+        var result = _executor.Execute(_httpClient, request, 0);
         Assert.That(result is Result<ResponseWrapper, Error>.Ok);
 
         var response = result.Unwrap();

@@ -73,7 +73,7 @@ static void RunCommand(FileInfo file, FileInfo? defaultsFile, string[] variableA
         _ => throw new InvalidOperationException("Unexpected result type") // Unreachable
     };
 
-    using var executor = new RequestExecutor(doc.Defaults);
+    var executor = new RequestExecutor(doc.Defaults);
 
     List<ResponseWrapper> responses = new();
     foreach (var request in doc.Requests)
