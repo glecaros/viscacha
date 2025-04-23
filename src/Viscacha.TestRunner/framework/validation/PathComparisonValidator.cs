@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,9 +8,9 @@ using Viscacha.TestRunner.Util;
 
 namespace Viscacha.TestRunner.Framework.Validation;
 
-internal class PathValidator(PathValidation validation) : IValidator
+internal class PathComparisonValidator(PathComparisonValidation validation) : IValidator
 {
-    private readonly PathValidation _validation = validation;
+    private readonly PathComparisonValidation _validation = validation;
 
     private Result<Error> Validate(Dictionary<string, FrameworkTestVariant> variants, ResponseGroup responseGroup, int index)
     {
@@ -27,12 +26,12 @@ internal class PathValidator(PathValidation validation) : IValidator
             var paths = extractor.ExtractPaths();
             variantPaths.Add((variant, paths));
         }
-        var baselinePaths = variantPaths.FirstOrDefault(v => v.variant.Baseline);
+        var baselinePaths = variantPaths.FirstOrDefault(v => v.variant.Name == _validation.Baseline);
         if (baselinePaths == default)
         {
             return new Error("No baseline variant found.");
         }
-        foreach (var (variant, paths) in variantPaths.Where(v => !v.variant.Baseline))
+        foreach (var (variant, paths) in variantPaths.Where(v => v.variant.Name != _validation.Baseline))
         {
             HashSet<string> difference = [.. paths];
             difference.SymmetricExceptWith(baselinePaths.paths);
@@ -50,11 +49,6 @@ internal class PathValidator(PathValidation validation) : IValidator
     private Result<Error> Validate(List<TestVariantResult> testResults)
     {
         Dictionary<string, FrameworkTestVariant> variants = testResults.ToDictionary(r => r.Variant.Name, r => r.Variant);
-
-        if (variants.Values.Where(v => v.Baseline).Count() != 1)
-        {
-            return new Error("There must be exactly one baseline variant for path validation.");
-        }
 
         var groups = ResponseGrouper.GroupResponsesByRequestIndex(testResults.ToArray());
         switch (_validation.Target)

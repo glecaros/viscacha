@@ -14,7 +14,7 @@ using YAYL;
 
 namespace Viscacha.TestRunner.Framework;
 
-internal record FrameworkTestVariant(string Name, Document Request, bool Baseline);
+internal record FrameworkTestVariant(string Name, Document Request);
 internal record FrameworkTest(string Name, List<FrameworkTestVariant> Variants, List<ValidationDefinition> Validations);
 internal record TestVariantResult(FrameworkTestVariant Variant, List<ResponseWrapper> Responses);
 
@@ -39,7 +39,7 @@ internal sealed class Session(SessionUid uid)
             {
                 return new Error($"Failed to parse suite file: {path}");
             }
-            Dictionary<string, (FileInfo File, bool Baseline)> configurations = [];
+            Dictionary<string, FileInfo> configurations = [];
             foreach (var configuration in suite.Configurations)
             {
                 var filePath = Path.Combine(suiteFileDirectory, configuration.Path);
@@ -47,7 +47,7 @@ internal sealed class Session(SessionUid uid)
                 {
                     return new Error($"File for configuration {configuration.Name} not found: {filePath}");
                 }
-                configurations[configuration.Name] = (new FileInfo(filePath), configuration.Baseline ?? false);
+                configurations[configuration.Name] = new FileInfo(filePath);
             }
             List<FrameworkTest> tests = [];
             foreach (var test in suite.Tests)
@@ -72,12 +72,12 @@ internal sealed class Session(SessionUid uid)
                     {
                         return new Error($"Configuration {variant} required by test {test.Name} not found");
                     }
-                    switch (await documentParser.FromFileAsync(testFile, configuration.File,  cancellationToken).ConfigureAwait(false))
+                    switch (await documentParser.FromFileAsync(testFile, configuration,  cancellationToken).ConfigureAwait(false))
                     {
                         case Result<Document, Error>.Err error:
                             return error.Error;
                         case Result<Document, Error>.Ok document:
-                            testVariants.Add(new FrameworkTestVariant(variant, document.Value, configuration.Baseline));
+                            testVariants.Add(new(variant, document.Value));
 
                             break;
                     }

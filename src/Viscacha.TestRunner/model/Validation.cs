@@ -5,9 +5,8 @@ namespace Viscacha.Model.Test;
 
 [YamlPolymorphic("type")]
 [YamlDerivedType("status", typeof(StatusValidation))]
-[YamlDerivedType("path", typeof(PathValidation))]
-[YamlDerivedType("format", typeof(FormatValidation))]
-[YamlDerivedType("semantic", typeof(SemanticValidation))]
+[YamlDerivedType("path-comparison", typeof(PathComparisonValidation))]
+[YamlDerivedType("field-format", typeof(FieldFormatValidation))]
 public abstract record ValidationDefinition
 {
     public Target? Target { get; init; }
@@ -15,7 +14,7 @@ public abstract record ValidationDefinition
 
 public record StatusValidation(int Status) : ValidationDefinition;
 
-public record PathValidation(string Baseline) : ValidationDefinition
+public record PathComparisonValidation(string Baseline) : ValidationDefinition
 {
     public HashSet<string> IgnorePaths { get; init; } = new();
 }
@@ -25,6 +24,4 @@ public enum Format
     Json,
 }
 
-public record FormatValidation(Format Format, string Path) : ValidationDefinition;
-
-public record SemanticValidation(string Provider, string Path, string Expectation) : ValidationDefinition;
+public record FieldFormatValidation(string Path, Format Format) : ValidationDefinition;

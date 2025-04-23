@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JsonPath.Net" Version="2.1.1" />
     <PackageReference Include="Microsoft.Testing.Platform" Version="1.6.3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="1.6.3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="1.6.3" />
