@@ -10,7 +10,7 @@ public class ResponseGrouperTests
     [Test]
     public void GroupResponsesByRequestIndex_GroupsCorrectly_ForSingleVariant()
     {
-        ResponseWrapper response = new ResponseWrapper(
+        ResponseWrapper response = new(
             200,
             new { foo = "bar" }, new()
             {
