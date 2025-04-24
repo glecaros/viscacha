@@ -1,0 +1,35 @@
+variables:
+  var1: value
+  var2: value
+configurations:
+  - name: Azure
+    path: ./configurations/azure-defaults.yaml
+  - name: OpenAI
+    path: ./configurations/openai-defaults.yaml
+tests:
+  - name: Basic text
+    variables:
+      var1: value
+      var2: value
+    request-file: ./requests/basic-text.yaml
+    configurations:
+      - Azure
+      - OpenAI
+    validations:
+      - type: status
+        target: # optional, defaults to all
+          type: all
+        status: 200
+      - type: path-comparison
+        target:
+          type: multiple
+          indices: [0, 1]
+        baseline: OpenAI
+        ignore-paths:
+          - tool_choice
+      - type: field
+        target:
+          type: single
+          index: 0
+        format: json
+        path: output[0].content[0].text

@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Net.ServerSentEvents;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Azure.Core;
@@ -31,17 +32,10 @@ internal record SSEEvent(
     [property: JsonPropertyName("event")] string EventName,
     [property: JsonPropertyName("data")] string Data);
 
-public class RequestExecutor: IDisposable
+public class RequestExecutor(Defaults? defaults = null)
 {
-    private readonly HttpClient _client = new();
     private readonly Dictionary<string, JsonElement> _responses = new();
-    private readonly Defaults? _defaults;
-
-    public RequestExecutor(Defaults? defaults = null, HttpClient? client = null)
-    {
-        _client = client ?? new();
-        _defaults = defaults;
-    }
+    private readonly Defaults? _defaults = defaults;
 
     private Uri ApplyQuery(string url, Dictionary<string, string>? query)
     {
@@ -131,19 +125,19 @@ public class RequestExecutor: IDisposable
         return new Error("URL is required");
     }
 
-    private async Task<object?> HandleApplicationJson(HttpContent content, int requestIndex)
+    private async Task<object?> HandleApplicationJsonAsync(HttpContent content, int requestIndex, CancellationToken cancellationToken)
     {
-        var stringContent = await content.ReadAsStringAsync().ConfigureAwait(false);
+        var stringContent = await content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         _responses[$"r{requestIndex}"] = JsonDocument.Parse(stringContent).RootElement;
         return JsonSerializer.Deserialize<object>(stringContent);
     }
 
-    private async Task<object?> HandleSSE(HttpContent content)
+    private async Task<object?> HandleSSEAsync(HttpContent content, CancellationToken cancellationToken)
     {
-        using var stream = await content.ReadAsStreamAsync();
+        using var stream = await content.ReadAsStreamAsync(cancellationToken);
         var parser = SseParser.Create(stream);
         List<SSEEvent> sseItems = [];
-        await foreach (SseItem<string> item in parser.EnumerateAsync())
+        await foreach (SseItem<string> item in parser.EnumerateAsync(cancellationToken))
         {
             sseItems.Add(new SSEEvent(item.EventType, item.Data));
         }
@@ -152,7 +146,23 @@ public class RequestExecutor: IDisposable
 
     public Result<ResponseWrapper, Error> Execute(Model.Request request, int requestIndex)
     {
-        return GetUrl(request).Map(ResolveVariables).Then<ResponseWrapper>(url =>
+        return ExecuteAsync(request, requestIndex).GetAwaiter().GetResult();
+    }
+
+    public async Task<Result<ResponseWrapper, Error>> ExecuteAsync(Model.Request request, int requestIndex)
+    {
+        using HttpClient client = new();
+        return await ExecuteAsync(client, request, requestIndex).ConfigureAwait(false);
+    }
+
+    public Result<ResponseWrapper, Error> Execute(HttpClient client, Model.Request request, int requestIndex)
+    {
+        return ExecuteAsync(client, request, requestIndex).GetAwaiter().GetResult();
+    }
+
+    public Task<Result<ResponseWrapper, Error>> ExecuteAsync(HttpClient client, Model.Request request, int requestIndex, CancellationToken cancellationToken = default)
+    {
+        return GetUrl(request).Map(ResolveVariables).Then<ResponseWrapper>(async url =>
         {
             var method = new HttpMethod(request.Method.ToUpperInvariant());
             var uri = ApplyQuery(url, request.Query);
@@ -187,26 +197,21 @@ public class RequestExecutor: IDisposable
             else if (authentication is AzureCredentialsAuthentication azure)
             {
                 var credentials = new DefaultAzureCredential();
-                var token = credentials.GetToken(new TokenRequestContext(azure.Scopes));
+                var token = await credentials.GetTokenAsync(new TokenRequestContext(azure.Scopes), cancellationToken).ConfigureAwait(false);
                 httpRequest.Headers.Add("Authorization", $"Bearer {token.Token}");
             }
 
-            using var response = _client.Send(httpRequest);
+            using var response = await client.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
             var headers = response.Headers.ToDictionary(h => h.Key, h => h.Value.ToList());
             var responseContentType = response.Content.Headers.ContentType?.MediaType;
             object? content = responseContentType switch
             {
-                "application/json" => HandleApplicationJson(response.Content, requestIndex).GetAwaiter().GetResult(),
-                "text/event-stream" => HandleSSE(response.Content).GetAwaiter().GetResult(),
+                "application/json" => await HandleApplicationJsonAsync(response.Content, requestIndex, cancellationToken),
+                "text/event-stream" => await HandleSSEAsync(response.Content, cancellationToken),
                 _ => null
             };
             return new ResponseWrapper((int)response.StatusCode, content, headers);
         });
-    }
-
-    public void Dispose()
-    {
-        _client.Dispose();
     }
 }
