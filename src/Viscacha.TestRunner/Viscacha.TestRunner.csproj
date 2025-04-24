@@ -9,7 +9,20 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>viscacha-test</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
+
+    <Version>0.1.0</Version>
+    <Authors>Gerardo Lecaros</Authors>
+    <RepositoryUrl>https://github.com/glecaros/viscacha</RepositoryUrl>
+    <Description>A tool to run tests based on requests described in YAML files.</Description>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Copyright>Copyright (c) Gerardo Lecaros 2025</Copyright>
   </PropertyGroup>
+
+  <ItemGroup>
+      <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+      <None Include="..\..\README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="JsonPath.Net" Version="2.1.1" />
