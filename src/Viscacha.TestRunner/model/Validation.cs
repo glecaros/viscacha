@@ -9,7 +9,7 @@ namespace Viscacha.Model.Test;
 [YamlDerivedType("field-format", typeof(FieldFormatValidation))]
 public abstract record ValidationDefinition
 {
-    public Target? Target { get; init; }
+    public Target Target { get; init; } = new Target.All();
 }
 
 public record StatusValidation(int Status) : ValidationDefinition;
