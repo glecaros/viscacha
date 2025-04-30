@@ -44,4 +44,4 @@ headers:
 ```
 
 ## Schemas
-See [TestRunner schemas](./schema/suite.tsp) and [Core schemas](./schema/requests.tsp).
+See [TestRunner schema](./schema/suite.tsp) and [Core schema](./schema/requests.tsp).

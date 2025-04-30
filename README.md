@@ -5,8 +5,8 @@ Viscacha is a toolkit for testing HTTP APIs using YAML definitions. It provides:
 - A TestRunner for running suites of tests with multiple configurations
 
 ## Packages
-- [CLI Tool](./src/Viscacha.CLI/README.md)
-- [Test Runner](./src/Viscacha.TestRunner/README.md)
+- [CLI Tool](./docs/README.CLI.md)
+- [Test Runner](./docs/README.TestRunner.md)
 
 ## YAML Structure
 
@@ -41,7 +41,7 @@ tests:
 ```
 
 ## Schemas
-See [Viscacha core schemas](./docs/schema/requests.tsp) and [TestRunner schemas](./docs/schema/suite.tsp).
+See [Viscacha core schema](./docs/schema/requests.tsp) and [TestRunner schema](./docs/schema/suite.tsp).
 
 ## License
 See [LICENSE](./LICENSE).
