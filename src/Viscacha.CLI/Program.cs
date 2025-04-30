@@ -109,4 +109,3 @@ static string ResolveVariableValue(string value)
     var binaryContent = File.ReadAllBytes(fileName);
     return Convert.ToBase64String(binaryContent);
 }
-
