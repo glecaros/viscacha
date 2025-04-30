@@ -18,7 +18,7 @@ public class FieldFormatValidatorTests
         FieldFormatValidator validator = new(validation);
         var content = new { foo = "{\"bar\":123}" };
         List<TestVariantResult> testResults = [
-            new(new("v1", doc), [new(200, content, [])]),
+            new(new("v1", doc), [new(200, content, "application/json", [])]),
         ];
         var result = await validator.ValidateAsync(testResults, default);
         Assert.That(result is Result<Error>.Ok);
@@ -32,8 +32,8 @@ public class FieldFormatValidatorTests
         FieldFormatValidator validator = new(validation);
         var content = new { foo =  "not-json" };
         List<TestVariantResult> testResults = [
-            new(new("v1", doc), [new(200, content, [])]),
-        ]; 
+            new(new("v1", doc), [new(200, content, "application/json", [])]),
+        ];
         var result = await validator.ValidateAsync(testResults, default);
         Assert.That(result is Result<Error>.Err);
         var error = result.UnwrapError();

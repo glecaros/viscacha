@@ -22,6 +22,11 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
                 return new Error($"Variant {variantName} not found.");
             }
 
+            if (response.ContentType != "application/json")
+            {
+                return new Error($"Response content type is not JSON for variant {variantName}: {response.ContentType}");
+            }
+
             PathExtractor extractor = new(response);
             var paths = extractor.ExtractPaths();
             variantPaths.Add((variant, paths));
@@ -36,7 +41,10 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
             HashSet<string> difference = [.. paths];
             difference.SymmetricExceptWith(baselinePaths.paths);
             difference.ExceptWith(paths);
-            difference.ExceptWith(_validation.IgnorePaths);
+            if (_validation.IgnorePaths is not null)
+            {
+                difference.ExceptWith(_validation.IgnorePaths);
+            }
 
             if (difference.Count > 0)
             {
@@ -51,7 +59,7 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
         Dictionary<string, FrameworkTestVariant> variants = testResults.ToDictionary(r => r.Variant.Name, r => r.Variant);
 
         var groups = ResponseGrouper.GroupResponsesByRequestIndex(testResults.ToArray());
-        switch (_validation.Target)
+        switch (_validation.GetEffectiveTarget())
         {
             case Target.All:
             {

@@ -9,7 +9,7 @@ public class PathExtractorTests
     public void ExtractPaths_ReturnsAllPaths_ForNestedObject()
     {
         var obj = new { foo = new { bar = 1, baz = 2 }, qux = 3 };
-        var wrapper = new ResponseWrapper(200, obj, []);
+        var wrapper = new ResponseWrapper(200, obj, null, []);
         var extractor = new PathExtractor(wrapper);
         var paths = extractor.ExtractPaths();
         Assert.That(paths, Does.Contain("foo.bar"));

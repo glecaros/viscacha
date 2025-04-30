@@ -10,6 +10,7 @@ using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.Messages;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Requests;
+using NUnit.Framework.Internal;
 
 namespace Viscacha.TestRunner.Tests;
 
@@ -36,10 +37,10 @@ public class SessionTests
     [Test]
     public async Task InitAsync_FileDoesNotExist_ReturnsError()
     {
-        var session = new Session(new SessionUid(Guid.NewGuid().ToString()));
         var nonExistentFile = Path.Combine(_tempDirectory, "nonexistent-suite.yaml");
+        var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(new(nonExistentFile), null));
 
-        var result = await session.InitAsync(nonExistentFile, CancellationToken.None);
+        var result = await session.InitAsync(CancellationToken.None);
         Assert.That(result is Result<Error>.Err);
 
         var error = result.UnwrapError();
@@ -61,28 +62,28 @@ tests:
     configurations: [default]
     validations: []
 ";
-        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
-        CreateTestFile("config.yaml", "base-url: https://api.example.com");
-        CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", "base-url: https://api.example.com");
+        using var _r = CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
 
-        var session = new Session(new SessionUid(Guid.NewGuid().ToString()));
-        var result = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
         Assert.That(result is Result<Error>.Ok);
     }
 
     [Test]
     public async Task InitAsync_MissingConfigurationFile_ReturnsError()
     {
-        var session = new Session(new SessionUid(Guid.NewGuid().ToString()));
         var suiteContent = @"
 configurations:
   - name: default
     path: missing-config.yaml
 tests: []
 ";
-        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
 
-        var result = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        var result = await session.InitAsync(CancellationToken.None);
         Assert.That(result is Result<Error>.Err);
 
         var error = result.UnwrapError();
@@ -92,7 +93,6 @@ tests: []
     [Test]
     public async Task InitAsync_MissingTestRequestFile_ReturnsError()
     {
-        var session = new Session(new SessionUid(Guid.NewGuid().ToString()));
         var suiteContent = @"
 configurations:
   - name: default
@@ -103,10 +103,11 @@ tests:
     configurations: [default]
     validations: []
 ";
-        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
-        CreateTestFile("config.yaml", "base-url: https://api.example.com");
+        using var _c = CreateTestFile("config.yaml", "base-url: https://api.example.com");
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
 
-        var result = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        var result = await session.InitAsync(CancellationToken.None);
         Assert.That(result is Result<Error>.Err);
 
         var error = result.UnwrapError();
@@ -128,13 +129,13 @@ tests:
     configurations: [config1, config2]
     validations: []
 ";
-        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
-        CreateTestFile("config1.yaml", "base-url: https://api1.example.com");
-        CreateTestFile("config2.yaml", "base-url: https://api2.example.com");
-        CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c1 = CreateTestFile("config1.yaml", "base-url: https://api1.example.com");
+        using var _c2 = CreateTestFile("config2.yaml", "base-url: https://api2.example.com");
+        using var _r = CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
 
-        Session session = new(new(Guid.NewGuid().ToString()));
-        var result = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
 
         Assert.That(result is Result<Error>.Ok);
 
@@ -203,12 +204,12 @@ tests:
     validations: []
 ";
 
-        var suiteFile = CreateTestFile("suite.yaml", suiteContent);
-        CreateTestFile("config.yaml", "base-url: https://api.example.com");
-        CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", "base-url: https://api.example.com");
+        using var _r = CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
 
-        Session session = new(new(Guid.NewGuid().ToString()));
-        var initResult = await session.InitAsync(suiteFile.FullName, CancellationToken.None);
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var initResult = await session.InitAsync(CancellationToken.None);
         Assert.That(initResult is Result<Error>.Ok);
 
         MockDataProducer producer = new();
@@ -226,10 +227,33 @@ tests:
         Assert.That(publishedMessage.TestNode.Uid.Value, Does.Contain("test1"));
     }
 
-    private FileInfo CreateTestFile(string filename, string content)
+    internal class TestFile: IDisposable
+    {
+        public TestFile(string path, string content)
+        {
+            Path = path;
+            Content = content;
+            File.WriteAllText(path, content);
+        }
+
+        public string Path { get; }
+        public string Content { get; }
+
+        public FileInfo ToFileInfo() => new(Path);
+
+        public static implicit operator FileInfo(TestFile testFile) => testFile.ToFileInfo();
+        public void Dispose()
+        {
+            if (File.Exists(Path))
+            {
+                File.Delete(Path);
+            }
+        }
+    }
+
+    private TestFile CreateTestFile(string filename, string content)
     {
         var filePath = Path.Combine(_tempDirectory, filename);
-        File.WriteAllText(filePath, content);
-        return new FileInfo(filePath);
+        return new TestFile(filePath, content);
     }
 }

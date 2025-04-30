@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Testing.Extensions.TrxReport.Abstractions;
 using Microsoft.Testing.Platform.Capabilities.TestFramework;
@@ -42,10 +43,10 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
 
     public string Description => "Runner for tests written with Viscacha files.";
 
-    public Type[] DataTypesProduced => [typeof(TestNodeUpdateMessage)];
+    public Type[] DataTypesProduced => [typeof(TestNodeUpdateMessage), typeof(TestNodeFileArtifact)];
 
     private readonly ICommandLineOptions _commandLineOptions;
-    private readonly Dictionary<SessionUid, Session> _sessions = new();
+    private readonly Dictionary<SessionUid, Session> _sessions = [];
 
     public TestingFramework(IServiceProvider serviceProvider)
     {
@@ -69,8 +70,14 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
                 IsSuccess = false,
             };
         }
-        var session = new Session(context.SessionUid);
-        if (await session.InitAsync(inputFile, context.CancellationToken).ConfigureAwait(false) is Result<Error>.Err error)
+        _commandLineOptions.TryGetOptionArgumentList(CommandLineOptions.ResponsesDirectoryOption, out var responsesDirectoryArguments);
+        var responsesDirectory = responsesDirectoryArguments switch {
+            [string path] => new DirectoryInfo(path),
+            _ => null
+        };
+
+        var session = new Session(context.SessionUid, new(new(inputFile), responsesDirectory));
+        if (await session.InitAsync(context.CancellationToken).ConfigureAwait(false) is Result<Error>.Err error)
         {
             return new()
             {

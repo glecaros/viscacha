@@ -12,7 +12,9 @@ public class ResponseGrouperTests
     {
         ResponseWrapper response = new(
             200,
-            new { foo = "bar" }, new()
+            new { foo = "bar" },
+            null,
+            new()
             {
                 ["header1"] = ["value1"],
             }

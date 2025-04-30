@@ -15,16 +15,17 @@
     <RepositoryUrl>https://github.com/glecaros/viscacha</RepositoryUrl>
     <Description>A tool to run tests based on requests described in YAML files.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>README.TestRunner.md</PackageReadmeFile>
     <Copyright>Copyright (c) Gerardo Lecaros 2025</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
       <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
-      <None Include="..\..\README.md" Pack="true" PackagePath="" />
+      <None Include="..\..\docs\README.TestRunner.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="dotenv.net" Version="3.2.1" />
     <PackageReference Include="JsonPath.Net" Version="2.1.1" />
     <PackageReference Include="Microsoft.Testing.Platform" Version="1.6.3" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="1.6.3" />

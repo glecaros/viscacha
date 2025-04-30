@@ -11,6 +11,7 @@ namespace Viscacha.TestRunner.Framework;
 internal sealed class CommandLineOptions : ICommandLineOptionsProvider
 {
     public const string InputFileOption = "input-file";
+    public const string ResponsesDirectoryOption = "responses-directory";
 
     public string Uid => nameof(CommandLineOptions);
 
@@ -23,6 +24,7 @@ internal sealed class CommandLineOptions : ICommandLineOptionsProvider
 
     public IReadOnlyCollection<CommandLineOption> GetCommandLineOptions() => [
         new (InputFileOption, "Path to the input file", ArgumentArity.ExactlyOne, false),
+        new (ResponsesDirectoryOption, "If set, responses will be saved to this directory", ArgumentArity.ExactlyOne, false),
     ];
 
     public Task<bool> IsEnabledAsync() => Task.FromResult(true);
@@ -54,6 +56,31 @@ internal sealed class CommandLineOptions : ICommandLineOptionsProvider
             {
                 return ValidationResult.InvalidTask($"The file {filePath} is not a valid YAML file.");
             }
+        }
+        else if (commandOption.Name == ResponsesDirectoryOption)
+        {
+            if (arguments.Length != 1)
+            {
+                return ValidationResult.InvalidTask($"The {ResponsesDirectoryOption} option requires exactly one argument.");
+            }
+            var directoryPath = arguments[0];
+            DirectoryInfo directoryInfo = new(directoryPath);
+            if (directoryInfo.Exists)
+            {
+                return ValidationResult.ValidTask;
+            }
+            try
+            {
+                directoryInfo.Create();
+            }
+            catch (Exception ex)
+            {
+                return ValidationResult.InvalidTask($"Failed to create directory {directoryPath}: {ex.Message}");
+            }
+        }
+        else
+        {
+            return ValidationResult.InvalidTask($"Unknown option: {commandOption.Name}");
         }
         return ValidationResult.ValidTask;
     }
