@@ -17,7 +17,7 @@ internal sealed class StatusValidator(StatusValidation validation) : IValidator
         Dictionary<string, FrameworkTestVariant> variants = testResults.ToDictionary(r => r.Variant.Name, r => r.Variant);
 
         var groups = ResponseGrouper.GroupResponsesByRequestIndex(testResults.ToArray());
-        switch (_validation.Target)
+        switch (_validation.GetEffectiveTarget())
         {
             case Target.All:
                 foreach (var group in groups)

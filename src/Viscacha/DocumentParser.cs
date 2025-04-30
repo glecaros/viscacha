@@ -1,38 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using YAYL;
 using Viscacha.Model;
 using System.Threading.Tasks;
 using System.Threading;
 
 namespace Viscacha;
 
-public class DocumentParser
+public class DocumentParser(Dictionary<string, string> variables, DirectoryInfo? workingDirectory = null)
 {
-    private readonly YamlParser _parser;
-    private readonly Dictionary<string, string> _variables;
-
-    public DocumentParser(Dictionary<string, string> variables)
-    {
-        _parser = new YamlParser();
-        _parser.AddVariableResolver(Constants.EnvironmentVariableRegex, ResolveVariableValue);
-        _variables = variables;
-    }
-
-    private string ResolveVariableValue(string variableName)
-    {
-        if (variableName.StartsWith("env:"))
-        {
-            return Environment.GetEnvironmentVariable(variableName[4..]) ?? string.Empty;
-        }
-
-        if (_variables.TryGetValue(variableName, out var value))
-        {
-            return value;
-        }
-        return string.Empty;
-    }
+    private readonly Parser _parser = new(variables, workingDirectory);
 
     public Result<Document, Error> FromFile(FileInfo file, FileInfo? defaultsFile)
     {
@@ -52,13 +28,13 @@ public class DocumentParser
         }
 
         Document? doc;
-        if (await _parser.TryParseFileAsync<Document>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Document?, Error>.Ok documentResult and { Value: not null})
+        if (await _parser.TryParseFileAsync<Document>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Document?, Error>.Ok { Value: not null } documentResult)
         {
             doc = documentResult.Value;
         }
-        else if (await _parser.TryParseFileAsync<Request>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Request?, Error>.Ok requestResult and { Value: not null })
+        else if (await _parser.TryParseFileAsync<Request>(file.FullName, cancellationToken).ConfigureAwait(false) is Result<Request?, Error>.Ok { Value: not null } requestResult)
         {
-            doc = new Document(Defaults.Empty, new List<Request> { requestResult.Value });
+            doc = new Document(Defaults.Empty, [requestResult.Value]);
         }
         else
         {
@@ -111,53 +87,24 @@ public class DocumentParser
 
 }
 
-    internal static class YamlExtensions
-{
-    public static bool TryParseFile<T>(this YamlParser parser, string filePath, out T? result) where T : class
-    {
-        try
-        {
-            result = parser.ParseFile<T>(filePath);
-            return true;
-        }
-        catch
-        {
-            result = default;
-            return false;
-        }
-    }
-
-    public static async Task<Result<T?, Error>> TryParseFileAsync<T>(this YamlParser parser, string filePath, CancellationToken cancellationToken = default) where T : class
-    {
-        try
-        {
-            var result = await parser.ParseFileAsync<T>(filePath, cancellationToken).ConfigureAwait(false);
-            return result;
-        }
-        catch (YamlParseException e)
-        {
-            return new Error(e.Message);
-        }
-    }
-}
-
 public static class Util
 {
     public static Dictionary<TKey, TValue>? Merge<TKey, TValue>(this Dictionary<TKey, TValue>? left, Dictionary<TKey, TValue>? right) where TKey : notnull
     {
         if (left is null)
         {
-            return right;
+            return right is null ? null : new(right);
         }
         if (right is null)
         {
-            return left;
+            return left is null ? null : new(left);
         }
+
+        Dictionary<TKey, TValue> merged = new(left);
         foreach (var (key, value) in right)
         {
-            left[key] = value;
+            merged[key] = value;
         }
-        return left;
+        return merged;
     }
 }
-

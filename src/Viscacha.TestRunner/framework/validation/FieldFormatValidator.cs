@@ -29,6 +29,11 @@ internal class FieldFormatValidator(FieldFormatValidation validation) : IValidat
                 return new Error($"Response content is null for variant {variantName}.");
             }
 
+            if (response.ContentType != "application/json")
+            {
+                return new Error($"Response content type is not JSON for variant {variantName}: {response.ContentType}");
+            }
+
             var extractionResult = _extractor.ExtractFields<string>(response.Content);
 
             if (!extractionResult.IsSuccess)
@@ -62,7 +67,7 @@ internal class FieldFormatValidator(FieldFormatValidation validation) : IValidat
                 }
             }
         }
-        
+
         return new Result<Error>.Ok();
     }
 
@@ -79,7 +84,7 @@ internal class FieldFormatValidator(FieldFormatValidation validation) : IValidat
 
         var groups = ResponseGrouper.GroupResponsesByRequestIndex(testResults.ToArray());
 
-        switch (_validation.Target)
+        switch (_validation.GetEffectiveTarget())
         {
             case Target.All:
             {

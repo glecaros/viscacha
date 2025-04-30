@@ -1,5 +1,8 @@
 using Microsoft.Testing.Platform.Builder;
+using dotenv.net;
 using Viscacha.TestRunner.Framework;
+
+DotEnv.Load();
 
 var builder = await TestApplication.CreateBuilderAsync(args);
 

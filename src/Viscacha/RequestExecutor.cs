@@ -26,6 +26,7 @@ internal static class HttpExtensions
 public record ResponseWrapper(
     [property: JsonPropertyName("code")] int Code,
     [property: JsonPropertyName("content")] object? Content,
+    [property: JsonPropertyName("content-type")] string? ContentType,
     [property: JsonPropertyName("headers")] Dictionary<string, List<string>> Headers);
 
 internal record SSEEvent(
@@ -211,7 +212,7 @@ public class RequestExecutor(Defaults? defaults = null)
                 "text/event-stream" => await HandleSSEAsync(response.Content, cancellationToken),
                 _ => null
             };
-            return new ResponseWrapper((int)response.StatusCode, content, headers);
+            return new ResponseWrapper((int)response.StatusCode, content, responseContentType, headers);
         });
     }
 }

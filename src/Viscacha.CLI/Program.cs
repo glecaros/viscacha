@@ -75,7 +75,7 @@ static void RunCommand(FileInfo file, FileInfo? defaultsFile, string[] variableA
 
     var executor = new RequestExecutor(doc.Defaults);
 
-    List<ResponseWrapper> responses = new();
+    List<ResponseWrapper> responses = [];
     foreach (var request in doc.Requests)
     {
         var response = executor.Execute(request, doc.Requests.IndexOf(request)) switch {

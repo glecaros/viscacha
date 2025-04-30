@@ -7,5 +7,6 @@ public record Test(
     Dictionary<string, string>? Variables,
     string RequestFile,
     List<string> Configurations,
-    List<ValidationDefinition> Validations
+    List<ValidationDefinition> Validations,
+    bool? Skip
 );

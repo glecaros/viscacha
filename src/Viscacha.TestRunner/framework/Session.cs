@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Testing.Platform.Extensions.Messages;
@@ -15,30 +16,32 @@ using YAYL;
 namespace Viscacha.TestRunner.Framework;
 
 internal record FrameworkTestVariant(string Name, Document Request);
-internal record FrameworkTest(string Name, List<FrameworkTestVariant> Variants, List<ValidationDefinition> Validations);
+internal record FrameworkTest(string Name, List<FrameworkTestVariant> Variants, List<ValidationDefinition> Validations, bool Skip);
 internal record TestVariantResult(FrameworkTestVariant Variant, List<ResponseWrapper> Responses);
 
-internal sealed class Session(SessionUid uid)
+internal sealed class Session(SessionUid uid, SessionOptions options)
 {
     public SessionUid Uid { get; } = uid;
 
     private bool _failed = false;
     private bool _initialized = false;
-    private string? _path;
     private List<FrameworkTest> _tests = [];
 
-    private async Task<Result<Error>> InitAsyncInternal(string path, CancellationToken cancellationToken)
+    private readonly FileInfo _inputFile = options.InputFile;
+    private readonly DirectoryInfo? _responsesDirectory = options.ResponsesDirectory;
+
+    private async Task<Result<Error>> InitAsyncInternal(CancellationToken cancellationToken)
     {
-        var pathInfo = new FileInfo(path);
-        _path = pathInfo.FullName;
-        var suiteFileDirectory = pathInfo.DirectoryName ?? string.Empty;
-        var parser = new YamlParser();
+        var suiteFileDirectory = _inputFile.DirectoryName ?? string.Empty;
+        var parser = new Parser(null, new(suiteFileDirectory));
         try {
-            var suite = await parser.ParseFileAsync<Suite>(path, cancellationToken).ConfigureAwait(false);
-            if (suite is null)
+            var suiteResult = await parser.TryParseFileAsync<Suite>(_inputFile.FullName, cancellationToken).ConfigureAwait(false);
+            if (suiteResult is Result<Suite?, Error>.Err { Error: { } _ })
             {
-                return new Error($"Failed to parse suite file: {path}");
+                return suiteResult.UnwrapError();
             }
+            var suite = suiteResult.Unwrap();
+
             Dictionary<string, FileInfo> configurations = [];
             foreach (var configuration in suite.Configurations)
             {
@@ -82,7 +85,7 @@ internal sealed class Session(SessionUid uid)
                             break;
                     }
                 }
-                tests.Add(new FrameworkTest(test.Name, testVariants, test.Validations));
+                tests.Add(new(test.Name, testVariants, test.Validations, test.Skip ?? false));
             }
             _initialized = true;
             _tests = tests;
@@ -95,8 +98,7 @@ internal sealed class Session(SessionUid uid)
         }
     }
 
-    public async Task<Result<Error>> InitAsync(string path, CancellationToken cancellationToken)
-    {
+    public async Task<Result<Error>> InitAsync(CancellationToken cancellationToken){
         if (_initialized)
         {
             return new Error("Session already initialized.");
@@ -105,7 +107,7 @@ internal sealed class Session(SessionUid uid)
         {
             return new Error("Session failed to initialize.");
         }
-        return (await InitAsyncInternal(path, cancellationToken).ConfigureAwait(false)).Else<Error>(e =>
+        return (await InitAsyncInternal(cancellationToken).ConfigureAwait(false)).Else<Error>(e =>
         {
             _failed = true;
             return e;
@@ -114,7 +116,7 @@ internal sealed class Session(SessionUid uid)
 
     private string GetStableUid(FrameworkTest test)
     {
-        return $"{_path}.{test.Name}";
+        return $"{_inputFile.FullName}.{test.Name}";
     }
 
     public async Task DiscoverTestsAsync(IDataProducer producer, ExecuteRequestContext context, CancellationToken _)
@@ -133,6 +135,37 @@ internal sealed class Session(SessionUid uid)
             };
             await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, testNode)).ConfigureAwait(false);
         }
+    }
+
+    private async Task<Result<Error>> SaveResponsesAsync(IDataProducer producer, ExecuteRequestContext context, FrameworkTest test, FrameworkTestVariant variant, List<ResponseWrapper> responses, CancellationToken cancellationToken)
+    {
+        if (_responsesDirectory is null)
+        {
+            return new Result<Error>.Ok();
+        }
+        var variantDirectory = Path.Combine(_responsesDirectory.FullName, test.Name, variant.Name);
+        try
+        {
+            Directory.CreateDirectory(variantDirectory);
+        }
+        catch (Exception e)
+        {
+            return new Error($"Failed to create directory for responses: {e.Message}");
+        }
+        var options = new JsonSerializerOptions() { WriteIndented = true };
+        foreach (var (index, response) in responses.Enumerate())
+        {
+            var fileName = $"response_{index}.json";
+            var filePath = Path.Combine(variantDirectory, fileName);
+            await File.WriteAllTextAsync(filePath, JsonSerializer.Serialize(response, options), cancellationToken).ConfigureAwait(false);
+            var node = new TestNode
+            {
+                Uid = GetStableUid(test),
+                DisplayName = test.Name,
+            };
+            await context.MessageBus.PublishAsync(producer, new TestNodeFileArtifact(Uid, node, new(filePath), $"Response index {index} for variant {variant.Name}")).ConfigureAwait(false);
+        }
+        return new Result<Error>.Ok();
     }
 
     private static async Task<Result<List<ResponseWrapper>, Error>> ExecuteVariantAsync(HttpClient client, FrameworkTestVariant variant, CancellationToken cancellationToken)
@@ -166,6 +199,17 @@ internal sealed class Session(SessionUid uid)
         using HttpClient client = new();
         foreach (var test in _tests)
         {
+            if (test.Skip)
+            {
+                var skippedNode = new TestNode
+                {
+                    Uid = GetStableUid(test),
+                    DisplayName = test.Name,
+                    Properties = new PropertyBag(SkippedTestNodeStateProperty.CachedInstance),
+                };
+                await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, skippedNode)).ConfigureAwait(false);
+                continue;
+            }
             var testNode = new TestNode
             {
                 Uid = GetStableUid(test),
@@ -177,7 +221,19 @@ internal sealed class Session(SessionUid uid)
             foreach (var variant in test.Variants)
             {
                 var result = await ExecuteVariantAsync(client, variant, cancellationToken).ConfigureAwait(false);
-                if (result is Result<List<ResponseWrapper>, Error>.Err { Error: { } error })
+                if (result is Result<List<ResponseWrapper>, Error>.Err { Error: { } })
+                {
+                    var errorNode = new TestNode
+                    {
+                        Uid = GetStableUid(test),
+                        DisplayName = test.Name,
+                        Properties = new(new FailedTestNodeStateProperty(result.UnwrapError().Message)),
+                    };
+                    await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, errorNode)).ConfigureAwait(false);
+                    continue;
+                }
+                var responses = result.Unwrap();
+                if (await SaveResponsesAsync(producer, context, test, variant, responses, cancellationToken) is Result<Error>.Err { Error: { } error })
                 {
                     var errorNode = new TestNode
                     {
@@ -188,16 +244,14 @@ internal sealed class Session(SessionUid uid)
                     await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, errorNode)).ConfigureAwait(false);
                     continue;
                 }
-                var responses = result.Unwrap();
                 testResults.Add(new(variant, responses));
             }
-            bool failed = false;
+
             foreach (var validation in test.Validations)
             {
                 var validator = ValidatorFactory.Create(validation);
                 if (await validator.ValidateAsync(testResults, cancellationToken) is Result<Error>.Err { Error: { } error })
                 {
-                    failed = true;
                     var errorNode = new TestNode
                     {
                         Uid = GetStableUid(test),
@@ -205,18 +259,28 @@ internal sealed class Session(SessionUid uid)
                         Properties = new PropertyBag(new FailedTestNodeStateProperty(error.Message)),
                     };
                     await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, errorNode)).ConfigureAwait(false);
+                    return;
                 }
             }
-            if (!failed)
+            var successNode = new TestNode
             {
-                var successNode = new TestNode
-                {
-                    Uid = GetStableUid(test),
-                    DisplayName = test.Name,
-                    Properties = new PropertyBag(PassedTestNodeStateProperty.CachedInstance),
-                };
-                await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, successNode)).ConfigureAwait(false);
-            }
+                Uid = GetStableUid(test),
+                DisplayName = test.Name,
+                Properties = new PropertyBag(PassedTestNodeStateProperty.CachedInstance),
+            };
+            await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, successNode)).ConfigureAwait(false);
+        }
+    }
+}
+
+internal static class EnumerableExtensions
+{
+    public static IEnumerable<(int Index, T Value)> Enumerate<T>(this IEnumerable<T> source)
+    {
+        int index = 0;
+        foreach (var item in source)
+        {
+            yield return (index++, item);
         }
     }
 }
