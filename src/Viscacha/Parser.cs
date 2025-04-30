@@ -86,7 +86,11 @@ public class Parser
 
         var result = await _parser.TryParseFileAsync<T>(filePath, cancellationToken)
                                   .ConfigureAwait(false);
-        if (result is Result<T?, Error>.Ok { Value: not null } okResult)
+        if (result is Result<T?, Error>.Err errorResult)
+        {
+            return errorResult.UnwrapError();
+        }
+        else  if (result is Result<T?, Error>.Ok { Value: not null } okResult)
         {
             return okResult.Value;
         }

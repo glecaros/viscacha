@@ -227,10 +227,17 @@ tests:
         Assert.That(publishedMessage.TestNode.Uid.Value, Does.Contain("test1"));
     }
 
-    internal class TestFile(string path, string content): IDisposable
+    internal class TestFile: IDisposable
     {
-        public string Path { get; } = path;
-        public string Content { get; } = content;
+        public TestFile(string path, string content)
+        {
+            Path = path;
+            Content = content;
+            File.WriteAllText(path, content);
+        }
+
+        public string Path { get; }
+        public string Content { get; }
 
         public FileInfo ToFileInfo() => new(Path);
 
