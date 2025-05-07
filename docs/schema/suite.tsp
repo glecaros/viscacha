@@ -18,6 +18,7 @@ alias Authentication = {
 alias ConfigurationReference = {
   name: string,
   path: string,
+  variables?: Record<string>,
 };
 
 alias Validation =  {

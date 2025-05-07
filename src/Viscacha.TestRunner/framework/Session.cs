@@ -42,7 +42,7 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
             }
             var suite = suiteResult.Unwrap();
 
-            Dictionary<string, FileInfo> configurations = [];
+            Dictionary<string, (FileInfo File, Dictionary<string, string>? Variables)> configurations = [];
             foreach (var configuration in suite.Configurations)
             {
                 var filePath = Path.Combine(suiteFileDirectory, configuration.Path);
@@ -50,13 +50,12 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
                 {
                     return new Error($"File for configuration {configuration.Name} not found: {filePath}");
                 }
-                configurations[configuration.Name] = new FileInfo(filePath);
+                configurations[configuration.Name] = (new FileInfo(filePath), configuration.Variables);
             }
             List<FrameworkTest> tests = [];
             foreach (var test in suite.Tests)
             {
-                var variables = suite.Variables.Merge(test.Variables) ?? [];
-                var documentParser = new DocumentParser(variables);
+                var testVariables = suite.Variables.Merge(test.Variables) ?? [];
                 var requestFilePath = Path.Combine(suiteFileDirectory, test.RequestFile);
                 FileInfo? testFile;
                 if (File.Exists(requestFilePath))
@@ -75,7 +74,9 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
                     {
                         return new Error($"Configuration {variant} required by test {test.Name} not found");
                     }
-                    switch (await documentParser.FromFileAsync(testFile, configuration,  cancellationToken).ConfigureAwait(false))
+                    var variantVariables = testVariables.Merge(configuration.Variables) ?? [];
+                    var documentParser = new DocumentParser(variantVariables);
+                    switch (await documentParser.FromFileAsync(testFile, configuration.File, cancellationToken).ConfigureAwait(false))
                     {
                         case Result<Document, Error>.Err error:
                             return error.Error;
