@@ -5,8 +5,8 @@ Viscacha is a toolkit for testing HTTP APIs using YAML definitions. It provides:
 - A TestRunner for running suites of tests with multiple configurations
 
 ## Packages
-- [CLI Tool](./docs/README.CLI.md)
-- [Test Runner](./docs/README.TestRunner.md)
+- [CLI Tool](./docs/README.CLI.md) [![NuGet Version](https://img.shields.io/nuget/v/Viscacha.CLI)](https://www.nuget.org/packages/Viscacha.CLI)
+- [Test Runner](./docs/README.TestRunner.md) [![NuGet Version](https://img.shields.io/nuget/v/Viscacha.TestRunner)](https://www.nuget.org/packages/Viscacha.TestRunner)
 
 ## YAML Structure
 

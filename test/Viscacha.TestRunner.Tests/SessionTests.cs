@@ -149,6 +149,326 @@ tests:
         Assert.That(tests[0].Variants[1].Name, Is.EqualTo("config2"));
     }
 
+    private static List<FrameworkTest> GetTests(Session session)
+    {
+        var testsField = typeof(Session).GetField("_tests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        return testsField?.GetValue(session) as List<FrameworkTest> ?? throw new InvalidOperationException("Failed to retrieve tests");
+    }
+
+    [Test]
+    public async Task InitAsync_GlobalVariables_AreAppliedToAllTests()
+    {
+        var suiteContent =
+            "variables:\n" +
+            "  var1: value1\n" +
+            "configurations:\n" +
+            "  - name: default\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n" +
+            "  - name: test2\n" +
+            "    request-file: request2.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n";
+
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var request1Content =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        var request2Content =
+            "method: GET\n" +
+            "path: /api/${var1}/test\n";
+
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", configContent);
+        using var _r1 = CreateTestFile("request1.yaml", request1Content);
+        using var _r2 = CreateTestFile("request2.yaml", request2Content);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+        Assert.That(result is Result<Error>.Ok);
+
+        var tests = GetTests(session);
+
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(2), "Should have created exactly two tests");
+
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+
+        var test2 = tests[1];
+        Assert.That(test2.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test2Variant1 = test2.Variants[0];
+        Assert.That(test2Variant1.Request, Is.Not.Null);
+        Assert.That(test2Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test2Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1/test"));
+    }
+
+    [Test]
+    public async Task InitAsync_TestVariables_AreAppliedToTest()
+    {
+        var suiteContent =
+            "configurations:\n" +
+            "  - name: default\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    variables:\n" +
+            "      var1: value1\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n" +
+            "  - name: test2\n" +
+            "    request-file: request2.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var request1Content =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        var request2Content =
+            "method: GET\n" +
+            "path: /api/${var1}/test\n";
+
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", configContent);
+        using var _r1 = CreateTestFile("request1.yaml", request1Content);
+        using var _r2 = CreateTestFile("request2.yaml", request2Content);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+        Assert.That(result is Result<Error>.Ok);
+
+        var tests = GetTests(session);
+
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(2), "Should have created exactly two tests");
+
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+
+        var test2 = tests[1];
+        Assert.That(test2.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test2Variant1 = test2.Variants[0];
+        Assert.That(test2Variant1.Request, Is.Not.Null);
+        Assert.That(test2Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test2Variant1.Request.Requests[0].Path, Is.EqualTo("/api//test")); // Variable not set, should be empty
+    }
+
+    [Test]
+    public async Task InitAsync_ConfigurationVariables_AreAppliedToVariant()
+    {
+        var suiteContent =
+            "configurations:\n" +
+            "  - name: config1\n" +
+            "    path: config.yaml\n" +
+            "    variables:\n" +
+            "      var1: value1\n" +
+            "  - name: config2\n" +
+            "    path: config.yaml\n" +
+            "    variables:\n" +
+            "      var1: value2\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [config1, config2]\n" +
+            "    validations: []\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var requestContent =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", configContent);
+        using var _r = CreateTestFile("request1.yaml", requestContent);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+
+        await session.InitAsync(CancellationToken.None);
+        var tests = GetTests(session);
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
+
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(2), "Test should have exactly two variants");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+
+        var test1Variant2 = test1.Variants[1];
+        Assert.That(test1Variant2.Request, Is.Not.Null);
+        Assert.That(test1Variant2.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant2.Request.Requests[0].Path, Is.EqualTo("/api/value2"));
+    }
+
+    [Test]
+    public async Task InitAsync_TestVariables_OverrideGlobalVariables()
+    {
+        var suiteContent =
+            "variables:\n" +
+            "  var1: value1\n" +
+            "configurations:\n" +
+            "  - name: default\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    variables:\n" +
+            "      var1: value2\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n" +
+            "  - name: test2\n" +
+            "    request-file: request2.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var request1Content =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        var request2Content =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c = CreateTestFile("config.yaml", configContent);
+        using var _r1 = CreateTestFile("request1.yaml", request1Content);
+        using var _r2 = CreateTestFile("request2.yaml", request2Content);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+        Assert.That(result is Result<Error>.Ok);
+
+        var tests = GetTests(session);
+
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(2), "Should have created exactly two tests");
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value2"));
+
+        var test2 = tests[1];
+        Assert.That(test2.Variants, Has.Count.EqualTo(1), "Test should have exactly one variant");
+        var test2Variant1 = test2.Variants[0];
+        Assert.That(test2Variant1.Request, Is.Not.Null);
+        Assert.That(test2Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test2Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+    }
+
+    [Test]
+    public async Task InitAsync_ConfigurationVariables_OverrideGlobalVariables()
+    {
+        var suiteContent =
+            "variables:\n" +
+            "  var1: value1\n" +
+            "configurations:\n" +
+            "  - name: config1\n" +
+            "    path: config.yaml\n" +
+            "    variables:\n" +
+            "      var1: value2\n" +
+            "  - name: config2\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [config1, config2]\n" +
+            "    validations: []\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var requestContent =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c1 = CreateTestFile("config.yaml", configContent);
+        using var _r = CreateTestFile("request1.yaml", requestContent);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+        Assert.That(result is Result<Error>.Ok);
+
+        var tests = GetTests(session);
+
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
+
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(2), "Test should have exactly two variants");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value2"));
+
+        var test1Variant2 = test1.Variants[1];
+        Assert.That(test1Variant2.Request, Is.Not.Null);
+        Assert.That(test1Variant2.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant2.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+    }
+
+    [Test]
+    public async Task InitAsync_ConfigurationVariables_OverrideTestVariables()
+    {
+        var suiteContent =
+            "configurations:\n" +
+            "  - name: config1\n" +
+            "    path: config.yaml\n" +
+            "    variables:\n" +
+            "      var1: value2\n" +
+            "  - name: config2\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    variables:\n" +
+            "      var1: value1\n" +
+            "    request-file: request1.yaml\n" +
+            "    configurations: [config1, config2]\n" +
+            "    validations: []\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var requestContent =
+            "method: GET\n" +
+            "path: /api/${var1}\n";
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c1 = CreateTestFile("config.yaml", configContent);
+        using var _r = CreateTestFile("request1.yaml", requestContent);
+
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+
+        Assert.That(result is Result<Error>.Ok);
+        var tests = GetTests(session);
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
+
+        var test1 = tests![0];
+
+        Assert.That(test1.Variants, Has.Count.EqualTo(2), "Test should have exactly two variants");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value2"));
+
+        var test1Variant2 = test1.Variants[1];
+        Assert.That(test1Variant2.Request, Is.Not.Null);
+        Assert.That(test1Variant2.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant2.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+    }
+
     internal class MockDataProducer : IDataProducer
     {
         public Type[] DataTypesProduced => Array.Empty<Type>();
