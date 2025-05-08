@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Viscacha.Model;
@@ -36,6 +37,7 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
         {
             return new Error("No baseline variant found.");
         }
+        StringBuilder sb = new();
         foreach (var (variant, paths) in variantPaths.Where(v => v.variant.Name != _validation.Baseline))
         {
             HashSet<string> difference = [.. paths];
@@ -48,9 +50,14 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
 
             if (difference.Count > 0)
             {
-                return new Error($"Variant {variant.Name} is missing paths: {string.Join(", ", difference)}");
+                sb.AppendLine($"Variant {variant.Name} is missing paths: {string.Join(", ", difference)}");
             }
         }
+        if (sb.Length > 0)
+        {
+            return new Error($"Validation failed for requests with index {index}:\n{sb}");
+        }
+
         return new Result<Error>.Ok();
     }
 
