@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
 namespace Viscacha.TestRunner.Util;
 
-internal class PathExtractor(ResponseWrapper response)
+internal class PathExtractor(ResponseWrapper response, bool preserveArrayIndices = false)
 {
     private readonly HashSet<string> _paths = [];
 
@@ -15,15 +16,21 @@ internal class PathExtractor(ResponseWrapper response)
 
             if (property.Value.ValueKind == JsonValueKind.Object)
             {
+                _paths.Add(currentPath);
                 ExtractPaths(property.Value, currentPath);
             }
             else if (property.Value.ValueKind == JsonValueKind.Array)
             {
-                foreach (var item in property.Value.EnumerateArray())
+                _paths.Add(currentPath);
+                foreach (var (index, item) in property.Value.EnumerateArray().Enumerate())
                 {
-                    if (item.ValueKind == JsonValueKind.Object)
+                    var arrayPath = preserveArrayIndices ?
+                                    $"{currentPath}[{index}]" :
+                                    $"{currentPath}[]";
+                    _paths.Add(arrayPath);
+                    if (item.ValueKind == JsonValueKind.Object || item.ValueKind == JsonValueKind.Array)
                     {
-                        ExtractPaths(item, currentPath);
+                        ExtractPaths(item, arrayPath);
                     }
                 }
             }

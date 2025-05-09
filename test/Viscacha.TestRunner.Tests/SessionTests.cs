@@ -11,6 +11,7 @@ using Microsoft.Testing.Platform.Messages;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Requests;
 using NUnit.Framework.Internal;
+using Viscacha.Model.Test;
 
 namespace Viscacha.TestRunner.Tests;
 
@@ -117,18 +118,17 @@ tests:
     [Test]
     public async Task InitAsync_MultipleConfigurations_CreatesOneTestWithMultipleVariants()
     {
-        var suiteContent = @"
-configurations:
-  - name: config1
-    path: config1.yaml
-  - name: config2
-    path: config2.yaml
-tests:
-  - name: test1
-    request-file: request.yaml
-    configurations: [config1, config2]
-    validations: []
-";
+        var suiteContent =
+            "configurations:\n" +
+            "  - name: config1\n" +
+            "    path: config1.yaml\n" +
+            "  - name: config2\n" +
+            "    path: config2.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request.yaml\n" +
+            "    configurations: [config1, config2]\n" +
+            "    validations: []\n";
         using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
         using var _c1 = CreateTestFile("config1.yaml", "base-url: https://api1.example.com");
         using var _c2 = CreateTestFile("config2.yaml", "base-url: https://api2.example.com");
@@ -467,6 +467,62 @@ tests:
         Assert.That(test1Variant2.Request, Is.Not.Null);
         Assert.That(test1Variant2.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
         Assert.That(test1Variant2.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+    }
+
+    [Test]
+    public async Task InitAsync_ValidationWithOptionalParameter()
+    {
+        var suiteContent =
+            "variables:\n" +
+            "  var1: value1\n" +
+            "configurations:\n" +
+            "  - name: config1\n" +
+            "    path: config.yaml\n" +
+            "  - name: config2\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request.yaml\n" +
+            "    configurations: [config1, config2]\n" +
+            "    validations:\n" +
+            "      - type: path-comparison\n" +
+            "        baseline: /api/value1\n" +
+            "        ignore-paths:\n" +
+            "          - foo\n" +
+            "        preserve-array-indices: true\n";
+        var configContent =
+            "base-url: https://api.example.com\n";
+        var requestContent =
+            "method: GET\n" +
+            "path: /api/value1\n";
+        using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
+        using var _c1 = CreateTestFile("config.yaml", configContent);
+        using var _r = CreateTestFile("request.yaml", requestContent);
+        Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
+        var result = await session.InitAsync(CancellationToken.None);
+        Assert.That(result is Result<Error>.Ok);
+        var tests = GetTests(session);
+        Assert.That(tests, Is.Not.Null);
+        Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
+        var test1 = tests![0];
+        Assert.That(test1.Variants, Has.Count.EqualTo(2), "Test should have exactly two variants");
+        var test1Variant1 = test1.Variants[0];
+        Assert.That(test1Variant1.Request, Is.Not.Null);
+        Assert.That(test1Variant1.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant1.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+        var test1Variant2 = test1.Variants[1];
+        Assert.That(test1Variant2.Request, Is.Not.Null);
+        Assert.That(test1Variant2.Request.Requests, Has.Count.EqualTo(1), "Request should have exactly one request");
+        Assert.That(test1Variant2.Request.Requests[0].Path, Is.EqualTo("/api/value1"));
+
+        Assert.That(test1.Validations, Has.Count.EqualTo(1), "Test should have exactly one validation");
+        var validation = test1.Validations[0];
+        Assert.That(validation, Is.InstanceOf<PathComparisonValidation>(), "Validation should be of type PathComparisonValidation");
+        var pathComparisonValidation = (PathComparisonValidation)validation;
+        Assert.That(pathComparisonValidation.Baseline, Is.EqualTo("/api/value1"), "Baseline should be /api/value1");
+        Assert.That(pathComparisonValidation.IgnorePaths, Has.Count.EqualTo(1), "Ignore paths should have one entry");
+        Assert.That(pathComparisonValidation.IgnorePaths, Has.Member("foo"), "Ignore paths should contain 'foo'");
+        Assert.That(pathComparisonValidation.PreserveArrayIndices, Is.True, "Preserve array indices should be true");
     }
 
     internal class MockDataProducer : IDataProducer

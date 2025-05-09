@@ -7,13 +7,13 @@ using JsonSchema;
 namespace Schemas;
 
 alias Authentication = {
-      type: "api-key",
-      header?: string,
-      prefix?: string,
-    } | {
-      type: "azure-credentials",
-      scopes: string[],
-    };
+  type: "api-key",
+  header?: string,
+  prefix?: string,
+} | {
+  type: "azure-credentials",
+  scopes: string[],
+};
 
 alias ConfigurationReference = {
   name: string,
@@ -28,6 +28,7 @@ alias Validation =  {
   type: "path-comparison",
   @uniqueItems
   `ignore-paths`: string[],
+  `preserve-array-indices`?: boolean,
 } | {
   type: "field-format",
   path: string,

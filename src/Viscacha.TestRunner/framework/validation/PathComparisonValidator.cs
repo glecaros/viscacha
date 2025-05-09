@@ -28,7 +28,7 @@ internal class PathComparisonValidator(PathComparisonValidation validation) : IV
                 return new Error($"Response content type is not JSON for variant {variantName}: {response.ContentType}");
             }
 
-            PathExtractor extractor = new(response);
+            PathExtractor extractor = new(response, _validation.PreserveArrayIndices ?? false);
             var paths = extractor.ExtractPaths();
             variantPaths.Add((variant, paths));
         }

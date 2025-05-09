@@ -11,6 +11,7 @@ using Microsoft.Testing.Platform.TestHost;
 using Viscacha.Model;
 using Viscacha.Model.Test;
 using Viscacha.TestRunner.Framework.Validation;
+using Viscacha.TestRunner.Util;
 using YAYL;
 
 namespace Viscacha.TestRunner.Framework;
@@ -270,18 +271,6 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
                 Properties = new PropertyBag(PassedTestNodeStateProperty.CachedInstance),
             };
             await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, successNode)).ConfigureAwait(false);
-        }
-    }
-}
-
-internal static class EnumerableExtensions
-{
-    public static IEnumerable<(int Index, T Value)> Enumerate<T>(this IEnumerable<T> source)
-    {
-        int index = 0;
-        foreach (var item in source)
-        {
-            yield return (index++, item);
         }
     }
 }
