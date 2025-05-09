@@ -9,7 +9,7 @@ namespace Viscacha.Model.Test;
 [YamlDerivedType("field-format", typeof(FieldFormatValidation))]
 public abstract record ValidationDefinition
 {
-    public Target? Target { get; init; }    
+    public Target? Target { get; init; }
 }
 
 
@@ -17,7 +17,8 @@ public record StatusValidation(int Status) : ValidationDefinition;
 
 public record PathComparisonValidation(string Baseline) : ValidationDefinition
 {
-    public HashSet<string>? IgnorePaths { get; init; } = [];
+    public HashSet<string>? IgnorePaths { get; init; }
+    public bool? PreserveArrayIndices { get; init; }
 }
 
 public enum Format
