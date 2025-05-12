@@ -25,7 +25,6 @@ internal class FieldExtractor(string path)
     public Result<List<T>, Error> ExtractFields<T>(object obj)
     {
         return ParsePath().Then(path => {
-            JsonSerializer.SerializeToNode(obj);
             return obj.ObjectToJsonNode().Then<List<T>>(node => {
                 List<T> results = [];
                 var result = path.Evaluate(node);
