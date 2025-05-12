@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Viscacha.Model.Test;
+namespace Viscacha.TestRunner.Model;
 
 public record Suite(
     Dictionary<string, string>? Variables,

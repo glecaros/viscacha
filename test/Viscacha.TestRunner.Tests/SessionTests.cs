@@ -11,30 +11,12 @@ using Microsoft.Testing.Platform.Messages;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Requests;
 using NUnit.Framework.Internal;
-using Viscacha.Model.Test;
+using Viscacha.TestRunner.Model;
 
 namespace Viscacha.TestRunner.Tests;
 
-public class SessionTests
+public class SessionTests: TestBase
 {
-    private string _tempDirectory;
-
-    [SetUp]
-    public void Setup()
-    {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(_tempDirectory);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, true);
-        }
-    }
-
     [Test]
     public async Task InitAsync_FileDoesNotExist_ReturnsError()
     {
@@ -51,18 +33,17 @@ public class SessionTests
     [Test]
     public async Task InitAsync_ValidSuiteFile_InitializesSuccessfully()
     {
-        var suiteContent = @"
-variables:
-  var1: value1
-configurations:
-  - name: default
-    path: config.yaml
-tests:
-  - name: test1
-    request-file: request.yaml
-    configurations: [default]
-    validations: []
-";
+        var suiteContent =
+            "variables:\n" +
+            "  var1: value1\n" +
+            "configurations:\n" +
+            "  - name: default\n" +
+            "    path: config.yaml\n" +
+            "tests:\n" +
+            "  - name: test1\n" +
+            "    request-file: request.yaml\n" +
+            "    configurations: [default]\n" +
+            "    validations: []\n";
         using var suiteFile = CreateTestFile("suite.yaml", suiteContent);
         using var _c = CreateTestFile("config.yaml", "base-url: https://api.example.com");
         using var _r = CreateTestFile("request.yaml", "method: GET\nurl: /api/test");
@@ -601,35 +582,5 @@ tests:
         Assert.That(publishedMessage, Is.Not.Null);
         Assert.That(publishedMessage!.TestNode.DisplayName, Is.EqualTo("test1"));
         Assert.That(publishedMessage.TestNode.Uid.Value, Does.Contain("test1"));
-    }
-
-    internal class TestFile: IDisposable
-    {
-        public TestFile(string path, string content)
-        {
-            Path = path;
-            Content = content;
-            File.WriteAllText(path, content);
-        }
-
-        public string Path { get; }
-        public string Content { get; }
-
-        public FileInfo ToFileInfo() => new(Path);
-
-        public static implicit operator FileInfo(TestFile testFile) => testFile.ToFileInfo();
-        public void Dispose()
-        {
-            if (File.Exists(Path))
-            {
-                File.Delete(Path);
-            }
-        }
-    }
-
-    private TestFile CreateTestFile(string filename, string content)
-    {
-        var filePath = Path.Combine(_tempDirectory, filename);
-        return new TestFile(filePath, content);
     }
 }

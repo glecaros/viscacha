@@ -18,6 +18,13 @@ public abstract record Result<T, E>(bool IsSuccess)
         _ => throw new InvalidOperationException("Invalid result type") // Unreachable
     };
 
+    public Result<E> Then(Func<T, Result<E>> map) => this switch
+    {
+        Ok ok => map(ok.Value),
+        Err err => new Result<E>.Err(err.Error),
+        _ => throw new InvalidOperationException("Invalid result type") // Unreachable
+    };
+
     public Result<U, E> Then<U>(Func<T, Result<U, E>> map) => this switch
     {
         Ok ok => map(ok.Value),

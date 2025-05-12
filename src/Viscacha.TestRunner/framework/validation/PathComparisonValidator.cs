@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Viscacha.Model;
-using Viscacha.Model.Test;
+using Viscacha.TestRunner.Model;
 using Viscacha.TestRunner.Util;
 
 namespace Viscacha.TestRunner.Framework.Validation;

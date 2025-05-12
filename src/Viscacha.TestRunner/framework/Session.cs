@@ -9,8 +9,8 @@ using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.TestHost;
 using Viscacha.Model;
-using Viscacha.Model.Test;
 using Viscacha.TestRunner.Framework.Validation;
+using Viscacha.TestRunner.Model;
 using Viscacha.TestRunner.Util;
 using YAYL;
 

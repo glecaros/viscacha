@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework.Internal;
 using Viscacha.Model;
-using Viscacha.Model.Test;
 using Viscacha.TestRunner.Framework;
 using Viscacha.TestRunner.Framework.Validation;
+using Viscacha.TestRunner.Model;
 
 namespace Viscacha.TestRunner.Tests;
 

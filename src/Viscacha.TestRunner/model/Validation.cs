@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using YAYL.Attributes;
 
-namespace Viscacha.Model.Test;
+namespace Viscacha.TestRunner.Model;
 
 [YamlPolymorphic("type")]
 [YamlDerivedType("status", typeof(StatusValidation))]
 [YamlDerivedType("path-comparison", typeof(PathComparisonValidation))]
 [YamlDerivedType("field-format", typeof(FieldFormatValidation))]
+[YamlDerivedType("json-schema", typeof(JsonSchemaValidation))]
 public abstract record ValidationDefinition
 {
     public Target? Target { get; init; }
@@ -27,6 +28,8 @@ public enum Format
 }
 
 public record FieldFormatValidation(string Path, Format Format) : ValidationDefinition;
+
+public record JsonSchemaValidation(string SchemaFile) : ValidationDefinition;
 
 
 public static class ValidationExtensions
