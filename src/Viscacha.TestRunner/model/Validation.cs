@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using YAYL;
 using YAYL.Attributes;
 
 namespace Viscacha.TestRunner.Model;
@@ -29,7 +30,25 @@ public enum Format
 
 public record FieldFormatValidation(string Path, Format Format) : ValidationDefinition;
 
-public record JsonSchemaValidation(string SchemaFile) : ValidationDefinition;
+[YamlPolymorphic("type")]
+[YamlDerivedType("self-contained", typeof(SelfContainedJsonSchema))]
+[YamlDerivedType("bundle", typeof(BundleJsonSchema))]
+[YamlDerivedType("multi-file", typeof(MultiFileJsonSchema))]
+public abstract record JsonSchemaConfig;
+
+public record SelfContainedJsonSchema(
+    [property: YamlPathField(YamlFilePathType.RelativeToFile)] string Path
+) : JsonSchemaConfig;
+
+public record BundleJsonSchema(
+    [property: YamlPathField(YamlFilePathType.RelativeToFile)] string Path,
+    string RootSchemaSelector
+) : JsonSchemaConfig;
+
+public record MultiFileJsonSchema(
+    [property: YamlPathField(YamlFilePathType.RelativeToFile)] string SchemaDirectory, [property: YamlPathField(YamlFilePathType.RelativeToFile)] string SchemaFile) : JsonSchemaConfig;
+
+public record JsonSchemaValidation(JsonSchemaConfig Schema) : ValidationDefinition;
 
 
 public static class ValidationExtensions
