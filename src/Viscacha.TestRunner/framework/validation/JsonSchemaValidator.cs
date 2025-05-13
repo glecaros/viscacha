@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Json.Pointer;
 using Json.Schema;
 using Viscacha.Model;
 using Viscacha.TestRunner.Model;
@@ -13,6 +14,11 @@ namespace Viscacha.TestRunner.Framework.Validation;
 
 internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
 {
+    internal record Schemas(
+        JsonSchema Schema,
+        List<JsonSchema> Dependencies
+    );
+
     private readonly JsonSchemaValidation _validation = validation;
 
     private static string WriteReport(EvaluationResults results)
@@ -37,7 +43,7 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
         return sb.ToString();
     }
 
-    private static Result<Error> Validate(JsonSchema schema, ResponseWrapper response)
+    private static Result<Error> Validate(Schemas schemas, ResponseWrapper response)
     {
         if (response.Content is not { } content)
         {
@@ -49,10 +55,15 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
         }
         return content.ObjectToJsonNode().Then(node =>
         {
-            var result = schema.Evaluate(node, new()
+            EvaluationOptions options = new()
             {
                 OutputFormat = OutputFormat.List,
-            });
+            };
+            foreach (var dependency in schemas.Dependencies)
+            {
+                options.SchemaRegistry.Register(dependency);
+            }
+            var result = schemas.Schema.Evaluate(node, options);
             if (result.IsValid)
             {
                 return new Result<Error>.Ok();
@@ -61,11 +72,36 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
         });
     }
 
-    private static Result<JsonSchema, Error> LoadSchema(string schemaFile)
+    private static Result<Schemas, Error> LoadSchemas(JsonSchemaConfig schema)
     {
         try
         {
-            return JsonSchema.FromFile(schemaFile);
+            switch (schema)
+            {
+                case SelfContainedJsonSchema { Path: var path }:
+                    var jsonSchema = JsonSchema.FromFile(path);
+                    return new Schemas(jsonSchema, []);
+                case BundleJsonSchema { Path: var path, RootSelector: var rootSelector }:
+                    var pointer = JsonPointer.Parse(rootSelector);
+                    var bundle = JsonSchema.FromFile(path);
+                    if (bundle is not IBaseDocument)
+                    {
+                        return new Error($"Bundle schema is not a valid document: {path}");
+                    }
+                    var rootSchema = (bundle as IBaseDocument).FindSubschema(pointer, EvaluationOptions.Default);
+                    if (rootSchema is null)
+                    {
+                        return new Error($"Root schema not found at {rootSelector} in bundle {path}");
+                    }
+                    return new Schemas(rootSchema, [bundle]);
+                case MultiFileJsonSchema { Path: var path, Dependencies: var dependencies }:
+                    var dependencySchemas = dependencies
+                        .Select(JsonSchema.FromFile)
+                        .ToList();
+                    return new Schemas(JsonSchema.FromFile(path), dependencySchemas);
+                default:
+                    return new Error($"Unsupported schema type: {schema.GetType()}");
+            }
         }
         catch (Exception ex)
         {
@@ -73,7 +109,7 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
         }
     }
 
-    private Result<Error> Validate(JsonSchema schema, List<ResponseGroup> groups)
+    private Result<Error> Validate(Schemas schemas, List<ResponseGroup> groups)
     {
         switch (_validation.GetEffectiveTarget())
         {
@@ -83,7 +119,7 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
                     {
                         foreach (var (variant, response) in group.Entries)
                         {
-                            var result = Validate(schema, response);
+                            var result = Validate(schemas, response);
                             if (result is Result<Error>.Err { Error: var error })
                             {
                                 return new Error($"Validation failed for variant {variant} request with index {index}: {error.Message}");
@@ -100,7 +136,7 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
                     }
                     foreach (var (variant, response) in groups[index].Entries)
                     {
-                        var result = Validate(schema, response);
+                        var result = Validate(schemas, response);
                         if (result is Result<Error>.Err { Error: var error })
                         {
                             return new Error($"Validation failed for variant {variant} request with index {index}: {error.Message}");
@@ -118,7 +154,7 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
                         }
                         foreach (var (variant, response) in groups[index].Entries)
                         {
-                            var result = Validate(schema, response);
+                            var result = Validate(schemas, response);
                             if (result is Result<Error>.Err { Error: var error })
                             {
                                 return new Error($"Validation failed for variant {variant} request with index {index}: {error.Message}");
@@ -134,10 +170,10 @@ internal class JsonSchemaValidator(JsonSchemaValidation validation) : IValidator
     public Result<Error> Validate(List<TestVariantResult> testResults)
     {
         var groups = ResponseGrouper.GroupResponsesByRequestIndex(testResults.ToArray());
-        return LoadSchema(_validation.SchemaFile)
-            .Then(schema =>
+        return LoadSchemas(_validation.Schema)
+            .Then(schemas =>
             {
-                return Validate(schema, groups);
+                return Validate(schemas, groups);
             });
     }
 

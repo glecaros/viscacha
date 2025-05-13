@@ -42,11 +42,13 @@ public record SelfContainedJsonSchema(
 
 public record BundleJsonSchema(
     [property: YamlPathField(YamlFilePathType.RelativeToFile)] string Path,
-    string RootSchemaSelector
+    string RootSelector
 ) : JsonSchemaConfig;
 
 public record MultiFileJsonSchema(
-    [property: YamlPathField(YamlFilePathType.RelativeToFile)] string SchemaDirectory, [property: YamlPathField(YamlFilePathType.RelativeToFile)] string SchemaFile) : JsonSchemaConfig;
+    [property: YamlPathField(YamlFilePathType.RelativeToFile)] string Path,
+    [property: YamlPathField(YamlFilePathType.RelativeToFile)] List<string> Dependencies
+) : JsonSchemaConfig;
 
 public record JsonSchemaValidation(JsonSchemaConfig Schema) : ValidationDefinition;
 

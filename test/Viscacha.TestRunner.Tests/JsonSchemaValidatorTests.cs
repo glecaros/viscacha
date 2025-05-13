@@ -21,7 +21,7 @@ public class JsonSchemaValidatorTests: TestBase
         }
 
         Document doc = new (Defaults.Empty, []);
-        JsonSchemaValidation validation = new(schemaFile.FullName);
+        JsonSchemaValidation validation = new(new SelfContainedJsonSchema(schemaFile.FullName));
         JsonSchemaValidator validator = new(validation);
         var content = new
         {
@@ -53,7 +53,7 @@ public class JsonSchemaValidatorTests: TestBase
         }
 
         Document doc = new (Defaults.Empty, []);
-        JsonSchemaValidation validation = new(schemaFile.FullName);
+        JsonSchemaValidation validation = new(new SelfContainedJsonSchema(schemaFile.FullName));
         JsonSchemaValidator validator = new(validation);
         var content = new
         {
