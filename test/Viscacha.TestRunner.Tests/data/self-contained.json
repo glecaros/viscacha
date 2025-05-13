@@ -1,0 +1,103 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "Person.json",
+    "type": "object",
+    "properties": {
+        "firstName": {
+            "type": "string",
+            "description": "The person's first name."
+        },
+        "lastName": {
+            "type": "string",
+            "description": "The person's last name."
+        },
+        "age": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "Age in years which must be equal to or greater than zero."
+        },
+        "address": {
+            "$ref": "Address.json",
+            "description": "Person address"
+        },
+        "nickNames": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "uniqueItems": true,
+            "description": "List of nick names"
+        },
+        "cars": {
+            "type": "array",
+            "items": {
+                "$ref": "Car.json"
+            },
+            "description": "List of cars person owns"
+        }
+    },
+    "required": [
+        "firstName",
+        "lastName",
+        "age",
+        "address"
+    ],
+    "$defs": {
+      "Address": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Address.json",
+            "type": "object",
+            "properties": {
+                "street": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "street",
+                "city",
+                "country"
+            ],
+            "description": "Respresent an address"
+        },
+        "Car": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Car.json",
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "const": "ev"
+                        },
+                        {
+                            "type": "string",
+                            "const": "ice"
+                        }
+                    ],
+                    "description": "Kind of car"
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Brand of the car"
+                },
+                "model": {
+                    "type": "string",
+                    "description": "Model of the car"
+                }
+            },
+            "required": [
+                "kind",
+                "brand",
+                "model"
+            ]
+        }
+    }
+}

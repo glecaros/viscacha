@@ -33,6 +33,20 @@ alias Validation =  {
   type: "field-format",
   path: string,
   format: "json",
+} | {
+  type: "json-schema",
+  schema: {
+    type: "self-contained",
+    path: string,
+  } | {
+    type: "bundle",
+    path: string,
+    `root-selector`: string,
+  } | {
+    type: "multi-file",
+    path: string,
+    dependencies: string[],
+  },
 };
 
 alias Test = {

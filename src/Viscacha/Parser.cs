@@ -127,7 +127,7 @@ internal static class YamlExtensions
     {
         try
         {
-            var result = await parser.ParseFileAsync<T>(filePath, cancellationToken).ConfigureAwait(false);
+            var result = await parser.ParseFileAsync<T>(filePath, null, cancellationToken).ConfigureAwait(false);
             return result;
         }
         catch (YamlParseException e)

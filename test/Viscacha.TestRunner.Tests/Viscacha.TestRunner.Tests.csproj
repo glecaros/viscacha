@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\src\Viscacha.TestRunner\Viscacha.TestRunner.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

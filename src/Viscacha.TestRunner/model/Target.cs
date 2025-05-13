@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using YAYL.Attributes;
 
-namespace Viscacha.Model.Test;
+namespace Viscacha.TestRunner.Model;
 
 [YamlPolymorphic("type")]
 [YamlDerivedType("all", typeof(All))]
