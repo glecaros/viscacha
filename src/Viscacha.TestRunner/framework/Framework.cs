@@ -43,7 +43,7 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
 
     public string Description => "Runner for tests written with Viscacha files.";
 
-    public Type[] DataTypesProduced => [typeof(TestNodeUpdateMessage), typeof(TestNodeFileArtifact)];
+    public Type[] DataTypesProduced => [typeof(TestNodeUpdateMessage)];
 
     private readonly ICommandLineOptions _commandLineOptions;
     private readonly Dictionary<SessionUid, Session> _sessions = [];

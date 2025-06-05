@@ -164,8 +164,9 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
             {
                 Uid = GetStableUid(test),
                 DisplayName = test.Name,
+                Properties = new(new FileArtifactProperty(new(filePath), $"Response index {index} for variant {variant.Name}")),
             };
-            await context.MessageBus.PublishAsync(producer, new TestNodeFileArtifact(Uid, node, new(filePath), $"Response index {index} for variant {variant.Name}")).ConfigureAwait(false);
+            await context.MessageBus.PublishAsync(producer, new TestNodeUpdateMessage(Uid, node)).ConfigureAwait(false);
         }
         return new Result<Error>.Ok();
     }
