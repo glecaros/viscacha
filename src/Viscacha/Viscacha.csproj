@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.14.0" />
-    <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.5" />
+    <PackageReference Include="System.Net.ServerSentEvents" Version="9.0.6" />
     <PackageReference Include="YAYL" Version="1.6.1" />
   </ItemGroup>
 </Project>
