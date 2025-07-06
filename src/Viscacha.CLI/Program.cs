@@ -12,34 +12,39 @@ using Viscacha.Model;
 
 DotEnv.Load();
 
-var fileArgument = new Argument<FileInfo>(
-    name: "file",
-    description: "YAML file containing the API request(s) to execute");
-
-var defaultsFile = new Option<FileInfo>(
-    name: "--defaults",
-    description: "YAML file containing the default values for the API request(s)")
+Argument<FileInfo> fileArgument = new("file")
 {
+    Description = "YAML file containing the API request(s) to execute",
+};
+
+Option<FileInfo> defaultsFileOption = new("--defaults")
+{
+    Description = "YAML file containing the default values for the API request(s)",
     Arity = ArgumentArity.ZeroOrOne
 };
 
-var variableOption = new Option<string[]>(
-    name: "--var",
-    description: "Variables to replace in the request (format: name=value)")
+Option<string[]> variableOption = new("--var")
 {
+    Description = "Variables to replace in the request (format: name=value)",
     AllowMultipleArgumentsPerToken = true
 };
 
 var rootCommand = new RootCommand("API Tester - Execute API requests defined in YAML files")
 {
     fileArgument,
-    defaultsFile,
+    defaultsFileOption,
     variableOption
 };
 
-rootCommand.SetHandler(RunCommand, fileArgument, defaultsFile, variableOption);
+rootCommand.SetAction((ParseResult parseResult) =>
+{
+    var file = parseResult.GetRequiredValue(fileArgument);
+    var defaultsFile = parseResult.GetValue(defaultsFileOption);
+    var variableArgs = parseResult.GetValue(variableOption);
+    RunCommand(file, defaultsFile, variableArgs ?? []);
+});
 
-return rootCommand.Invoke(args);
+return rootCommand.Parse(args).Invoke();
 
 [DoesNotReturn]
 static T HandleError<T>(Result<T, Error>.Err error)
