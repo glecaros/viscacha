@@ -5,7 +5,7 @@ A tool to run suites of HTTP API tests described in YAML files.
 ## Usage
 
 ```sh
-dotnet tool install --global viscacha-test
+dotnet tool install --global Viscacha.TestRunner
 viscacha-test --input-file <suite.yaml> [--responses-directory <dir>]
 ```
 

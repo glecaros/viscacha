@@ -5,7 +5,7 @@ A command-line tool for testing HTTP APIs using YAML definitions.
 ## Usage
 
 ```bash
-dotnet tool install --global viscacha
+dotnet tool install --global Viscacha.CLI
 viscacha <file.yaml> [--defaults <defaults.yaml>] [--var name=value ...]
 ```
 
