@@ -30,9 +30,6 @@ jobs:
     - name: Pack Viscacha CLI
       run: dotnet pack src/Viscacha.CLI/Viscacha.CLI.csproj --configuration Release --no-build --output nupkg
 
-    - name: Pack Viscacha Test Runner
-      run: dotnet pack src/Viscacha.TestRunner/Viscacha.TestRunner.csproj --configuration Release --no-build --output nupkg
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
