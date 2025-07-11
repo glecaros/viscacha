@@ -4,6 +4,8 @@ using Microsoft.Testing.Extensions;
 using System;
 using System.CommandLine;
 using System.Linq;
+using System.IO;
+using System.Collections.Generic;
 
 namespace Viscacha.CLI.Test;
 
@@ -11,23 +13,67 @@ public static class TestCommand
 {
     public static Command Create()
     {
+        Option<FileInfo> inputFileOption = new("--input-file", ["-i"])
+        {
+            Required = true,
+            Description = "The YAML file containing the test definitions.",
+            Arity = ArgumentArity.ExactlyOne
+        };
+        Option<DirectoryInfo> responsesDirectoryOption = new("--responses-directory", ["-r"])
+        {
+            Required = false,
+            Description = "If set, responses will be saved to this directory.",
+            Arity = ArgumentArity.ExactlyOne
+        };
+        Option<bool> listTestsOption = new("--list-tests")
+        {
+            Required = false,
+            Description = "List available tests.",
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        Option<bool> reportTrxOption = new("--report-trx")
+        {
+            Required = false,
+            Description = "Enable generating TRX report.",
+            Arity = ArgumentArity.ZeroOrOne
+        };
+        Option<FileInfo> reportTrxFilenameOption = new("--report-trx-filename")
+        {
+            Required = false,
+            Description = "The filename for the TRX report.",
+            Arity = ArgumentArity.ExactlyOne
+        };
         Command command = new("test", "Run tests defined in a YAML file.")
         {
-            new Option<bool>("--help")
-            {
-                Hidden = true
-            }
+            inputFileOption,
+            responsesDirectoryOption,
+            listTestsOption,
+            reportTrxOption,
+            reportTrxFilenameOption
         };
         command.SetAction(async (parseResult) =>
         {
-            var args = parseResult.UnmatchedTokens.ToArray();
-            /* TODO: We need to map the options we want exposed and let the command line library handle the rest. */
-            if (parseResult.GetValue<bool>("--help"))
+            List<string> args = [];
+            var inputFile = parseResult.GetRequiredValue(inputFileOption);
+            args.AddRange([inputFileOption.Name, inputFile.FullName]);
+            if (parseResult.GetValue(responsesDirectoryOption) is DirectoryInfo responsesDirectory)
             {
-                args = ["--help"];
+                args.AddRange([responsesDirectoryOption.Name, responsesDirectory.FullName]);
+            }
+            if (parseResult.GetValue(listTestsOption))
+            {
+                args.Add(listTestsOption.Name);
+            }
+            if (parseResult.GetValue(reportTrxOption))
+            {
+                args.Add(reportTrxOption.Name);
+            }
+            if (parseResult.GetValue(reportTrxFilenameOption) is FileInfo reportTrxFile)
+            {
+                args.AddRange([reportTrxFilenameOption.Name, reportTrxFile.FullName]);
             }
 
-            var builder = await TestApplication.CreateBuilderAsync(args);
+            var builder = await TestApplication.CreateBuilderAsync([.. args]);
 
             builder.RegisterTestFramework(
                 (_) => new TestingFrameworkCapabilities(),
@@ -42,4 +88,3 @@ public static class TestCommand
         return command;
     }
 }
-

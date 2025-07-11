@@ -35,7 +35,7 @@ public static class RequestCommand
             variableOption
         };
 
-        command.SetAction((ParseResult parseResult) =>
+        command.SetAction(parseResult =>
         {
             var file = parseResult.GetRequiredValue(fileArgument);
             var defaultsFile = parseResult.GetValue(defaultsFileOption);
