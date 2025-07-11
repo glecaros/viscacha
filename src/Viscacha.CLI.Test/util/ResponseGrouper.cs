@@ -17,7 +17,7 @@ internal class ResponseGrouper
         return testResults switch
         {
             [] => [],
-            [var result] => [.. result.Responses.Select(response => new ResponseGroup([ new(result.Variant.Name, response) ]))],
+            [var result] => [.. result.Responses.Select(response => new ResponseGroup([new(result.Variant.Name, response)]))],
             [var result, .. var rest] => ZipGroups(GroupResponsesByRequestIndex(rest), result.Responses, result.Variant.Name),
         };
     }

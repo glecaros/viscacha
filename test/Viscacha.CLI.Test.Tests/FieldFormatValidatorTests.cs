@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Framework;
 using Viscacha.CLI.Test.Framework.Validation;
 using Viscacha.CLI.Test.Model;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Tests;
 
@@ -13,7 +13,7 @@ public class FieldFormatValidatorTests
     [Test]
     public async Task ValidateAsync_ValidJsonField_ReturnsOk()
     {
-        Document doc = new (Defaults.Empty, []);
+        Document doc = new(Defaults.Empty, []);
         FieldFormatValidation validation = new("$.foo", Format.Json);
         FieldFormatValidator validator = new(validation);
         var content = new { foo = "{\"bar\":123}" };
@@ -21,21 +21,21 @@ public class FieldFormatValidatorTests
             new(new("v1", doc), [new(200, content, "application/json", [])]),
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
     }
 
     [Test]
     public async Task ValidateAsync_InvalidJsonField_ReturnsError()
     {
-        Document doc = new (Defaults.Empty, []);
+        Document doc = new(Defaults.Empty, []);
         FieldFormatValidation validation = new("$.foo", Format.Json);
         FieldFormatValidator validator = new(validation);
-        var content = new { foo =  "not-json" };
+        var content = new { foo = "not-json" };
         List<TestVariantResult> testResults = [
             new(new("v1", doc), [new(200, content, "application/json", [])]),
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("JSON"));
     }

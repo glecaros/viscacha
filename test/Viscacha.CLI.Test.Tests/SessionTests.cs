@@ -1,21 +1,21 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Viscacha.CLI.Test.Framework;
-using Viscacha.Model;
-using Microsoft.Testing.Platform.TestHost;
-using System.Collections.Generic;
+using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.Messages;
-using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Requests;
+using Microsoft.Testing.Platform.TestHost;
 using NUnit.Framework.Internal;
+using Viscacha.CLI.Test.Framework;
 using Viscacha.CLI.Test.Model;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Tests;
 
-public class SessionTests: TestBase
+public class SessionTests : TestBase
 {
     [Test]
     public async Task InitAsync_FileDoesNotExist_ReturnsError()
@@ -24,7 +24,7 @@ public class SessionTests: TestBase
         var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(new(nonExistentFile), null));
 
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
 
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("File not found"));
@@ -50,7 +50,7 @@ public class SessionTests: TestBase
 
         var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
     }
 
     [Test]
@@ -66,7 +66,7 @@ tests: []
         var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
 
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
 
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("File for configuration default not found"));
@@ -90,7 +90,7 @@ tests:
         var session = new Session(new SessionUid(Guid.NewGuid().ToString()), new(suiteFile, null));
 
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
 
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("File for test test1 not found"));
@@ -118,14 +118,14 @@ tests:
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
 
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
 
         var testsField = typeof(Session).GetField("_tests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         var tests = testsField?.GetValue(session) as List<FrameworkTest>;
 
         Assert.That(tests, Is.Not.Null);
         Assert.That(tests!.Count, Is.EqualTo(1), "Should have created exactly one test");
-        Assert.That(tests[0].Variants.Count, Is.EqualTo(2), "Test should have exactly two variants");
+        Assert.That(tests[0].Variants, Has.Count.EqualTo(2), "Test should have exactly two variants");
         Assert.That(tests[0].Variants[0].Name, Is.EqualTo("config1"));
         Assert.That(tests[0].Variants[1].Name, Is.EqualTo("config2"));
     }
@@ -171,7 +171,7 @@ tests:
 
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
 
         var tests = GetTests(session);
 
@@ -227,7 +227,7 @@ tests:
 
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
 
         var tests = GetTests(session);
 
@@ -331,7 +331,7 @@ tests:
 
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
 
         var tests = GetTests(session);
 
@@ -381,7 +381,7 @@ tests:
 
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
 
         var tests = GetTests(session);
 
@@ -431,7 +431,7 @@ tests:
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
 
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
         var tests = GetTests(session);
         Assert.That(tests, Is.Not.Null);
         Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
@@ -481,7 +481,7 @@ tests:
         using var _r = CreateTestFile("request.yaml", requestContent);
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var result = await session.InitAsync(CancellationToken.None);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
         var tests = GetTests(session);
         Assert.That(tests, Is.Not.Null);
         Assert.That(tests, Has.Count.EqualTo(1), "Should have created exactly one test");
@@ -567,7 +567,7 @@ tests:
 
         Session session = new(new(Guid.NewGuid().ToString()), new(suiteFile, null));
         var initResult = await session.InitAsync(CancellationToken.None);
-        Assert.That(initResult is Result<Error>.Ok);
+        Assert.That(initResult, Is.InstanceOf<Result<Error>.Ok>());
 
         MockDataProducer producer = new();
         MockRequest request = new();

@@ -13,7 +13,7 @@ public class FieldExtractorTests
         var obj = new { foo = new { bar = 42 } };
         var extractor = new FieldExtractor("$.foo.bar");
         var result = extractor.ExtractFields<int>(obj);
-        Assert.That(result is Result<List<int>, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<List<int>, Error>.Ok>());
 
         var extractedFields = result.Unwrap();
 
@@ -28,7 +28,7 @@ public class FieldExtractorTests
         var extractor = new FieldExtractor("$.foo[");
         var result = extractor.ExtractFields<int>(obj);
 
-        Assert.That(result is Result<List<int>, Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<List<int>, Error>.Err>());
 
         var error = result.UnwrapError();
 

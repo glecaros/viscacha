@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Framework;
 using Viscacha.CLI.Test.Framework.Validation;
 using Viscacha.CLI.Test.Model;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Tests;
 
@@ -41,7 +41,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
     }
 
     [Test]
@@ -72,7 +72,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("Validation failed for response"));
     }
@@ -106,7 +106,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
     }
 
     [Test]
@@ -137,7 +137,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("Validation failed for response"));
     }
@@ -183,7 +183,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Ok>());
     }
 
     [Test]
@@ -226,7 +226,7 @@ public class JsonSchemaValidatorTests : TestBase
             new(new("v1", doc), [new(200, content, "application/json", [])])
         ];
         var result = await validator.ValidateAsync(testResults, default);
-        Assert.That(result is Result<Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<Error>.Err>());
         var error = result.UnwrapError();
         Assert.That(error.Message, Does.Contain("Validation failed for response"));
     }

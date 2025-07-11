@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 using Microsoft.Testing.Platform.Extensions.Messages;
 using Microsoft.Testing.Platform.Extensions.TestFramework;
 using Microsoft.Testing.Platform.TestHost;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Framework.Validation;
 using Viscacha.CLI.Test.Model;
 using Viscacha.CLI.Test.Util;
+using Viscacha.Model;
 using YAYL;
 
 namespace Viscacha.CLI.Test.Framework;
@@ -35,7 +35,8 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
     {
         var suiteFileDirectory = _inputFile.DirectoryName ?? string.Empty;
         var parser = new Parser(null, new(suiteFileDirectory));
-        try {
+        try
+        {
             var suiteResult = await parser.TryParseFileAsync<Suite>(_inputFile.FullName, cancellationToken).ConfigureAwait(false);
             if (suiteResult is Result<Suite?, Error>.Err { Error: { } _ })
             {
@@ -100,7 +101,8 @@ internal sealed class Session(SessionUid uid, SessionOptions options)
         }
     }
 
-    public async Task<Result<Error>> InitAsync(CancellationToken cancellationToken){
+    public async Task<Result<Error>> InitAsync(CancellationToken cancellationToken)
+    {
         if (_initialized)
         {
             return new Error("Session already initialized.");

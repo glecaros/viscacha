@@ -71,7 +71,8 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
             };
         }
         _commandLineOptions.TryGetOptionArgumentList(CommandLineOptions.ResponsesDirectoryOption, out var responsesDirectoryArguments);
-        var responsesDirectory = responsesDirectoryArguments switch {
+        var responsesDirectory = responsesDirectoryArguments switch
+        {
             [string path] => new DirectoryInfo(path),
             _ => null
         };
@@ -95,7 +96,7 @@ internal sealed class TestingFramework : ITestFramework, IDataProducer, IDisposa
     public Task<CloseTestSessionResult> CloseTestSessionAsync(CloseTestSessionContext context)
     {
         _sessions.Remove(context.SessionUid);
-        return Task.FromResult(new CloseTestSessionResult{ IsSuccess = true });
+        return Task.FromResult(new CloseTestSessionResult { IsSuccess = true });
     }
 
 

@@ -36,7 +36,7 @@ internal sealed class DisplayDataConsumer : IDataConsumer, IOutputDeviceDataProd
                 var displayName = testNodeUpdateMessage.TestNode.DisplayName;
                 var testNodeId = testNodeUpdateMessage.TestNode.Uid;
 
-                var  nodeState = testNodeUpdateMessage.TestNode.Properties.Single<TestNodeStateProperty>();
+                var nodeState = testNodeUpdateMessage.TestNode.Properties.Single<TestNodeStateProperty>();
                 switch (nodeState)
                 {
                     case InProgressTestNodeStateProperty _:

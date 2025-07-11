@@ -23,7 +23,7 @@ public abstract class TestBase
         }
     }
 
-    protected class TestFile: IDisposable
+    protected class TestFile : IDisposable
     {
         public TestFile(string path, string content)
         {

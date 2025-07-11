@@ -6,9 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Json.Pointer;
 using Json.Schema;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Model;
 using Viscacha.CLI.Test.Util;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Framework.Validation;
 

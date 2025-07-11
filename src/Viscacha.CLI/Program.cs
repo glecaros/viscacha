@@ -1,5 +1,5 @@
-﻿using dotenv.net;
-using System.CommandLine;
+﻿using System.CommandLine;
+using dotenv.net;
 using Viscacha.CLI.Request;
 using Viscacha.CLI.Test;
 

@@ -1,10 +1,10 @@
-using Microsoft.Testing.Platform.Builder;
-using Viscacha.CLI.Test.Framework;
-using Microsoft.Testing.Extensions;
 using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
-using System.Collections.Generic;
+using Microsoft.Testing.Extensions;
+using Microsoft.Testing.Platform.Builder;
+using Viscacha.CLI.Test.Framework;
 
 namespace Viscacha.CLI.Test;
 

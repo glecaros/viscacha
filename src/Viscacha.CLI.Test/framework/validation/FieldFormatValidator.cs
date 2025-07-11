@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Model;
 using Viscacha.CLI.Test.Util;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Framework.Validation;
 
@@ -87,40 +87,40 @@ internal class FieldFormatValidator(FieldFormatValidation validation) : IValidat
         switch (_validation.GetEffectiveTarget())
         {
             case Target.All:
-            {
-                int index = 0;
-                foreach (var group in groups)
                 {
-                    if (Validate(variants, group, index++) is Result<Error>.Err error)
+                    int index = 0;
+                    foreach (var group in groups)
                     {
-                        return error;
+                        if (Validate(variants, group, index++) is Result<Error>.Err error)
+                        {
+                            return error;
+                        }
                     }
+                    break;
                 }
-                break;
-            }
             case Target.Single { Index: var index }:
-            {
-                if (index < 0 || index >= groups.Count)
-                {
-                    return new Error($"Index {index} out of range.");
-                }
-                return Validate(variants, groups[index], index);
-            }
-            case Target.Multiple { Indices: var indices }:
-            {
-                foreach (var index in indices)
                 {
                     if (index < 0 || index >= groups.Count)
                     {
                         return new Error($"Index {index} out of range.");
                     }
-                    if (Validate(variants, groups[index], index) is Result<Error>.Err error)
-                    {
-                        return error;
-                    }
+                    return Validate(variants, groups[index], index);
                 }
-                break;
-            }
+            case Target.Multiple { Indices: var indices }:
+                {
+                    foreach (var index in indices)
+                    {
+                        if (index < 0 || index >= groups.Count)
+                        {
+                            return new Error($"Index {index} out of range.");
+                        }
+                        if (Validate(variants, groups[index], index) is Result<Error>.Err error)
+                        {
+                            return error;
+                        }
+                    }
+                    break;
+                }
         }
 
         return new Result<Error>.Ok();

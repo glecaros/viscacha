@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Viscacha.Model;
 using Viscacha.CLI.Test.Model;
 using Viscacha.CLI.Test.Util;
+using Viscacha.Model;
 
 namespace Viscacha.CLI.Test.Framework.Validation;
 

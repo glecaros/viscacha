@@ -24,8 +24,10 @@ internal class FieldExtractor(string path)
 
     public Result<List<T>, Error> ExtractFields<T>(object obj)
     {
-        return ParsePath().Then(path => {
-            return obj.ObjectToJsonNode().Then<List<T>>(node => {
+        return ParsePath().Then(path =>
+        {
+            return obj.ObjectToJsonNode().Then<List<T>>(node =>
+            {
                 List<T> results = [];
                 var result = path.Evaluate(node);
                 foreach (var (location, value) in result.Matches)
