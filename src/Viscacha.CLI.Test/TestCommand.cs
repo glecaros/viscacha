@@ -3,7 +3,6 @@ using Viscacha.CLI.Test.Framework;
 using Microsoft.Testing.Extensions;
 using System;
 using System.CommandLine;
-using System.Linq;
 using System.IO;
 using System.Collections.Generic;
 
