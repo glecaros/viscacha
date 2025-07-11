@@ -22,7 +22,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+      <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
       <None Include="..\..\docs\README.CLI.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
@@ -34,6 +34,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Viscacha\Viscacha.csproj" />
+    <ProjectReference Include="..\Viscacha.CLI.Request\Viscacha.CLI.Request.csproj" />
+    <ProjectReference Include="..\Viscacha.CLI.Test\Viscacha.CLI.Test.csproj" />
   </ItemGroup>
 
 </Project>

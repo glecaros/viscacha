@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+      <None Include="..\..\docs\README.TestRunner.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonPath.Net" Version="2.1.1" />
+    <PackageReference Include="JsonSchema.Net" Version="7.3.4" />
+    <PackageReference Include="Microsoft.Testing.Platform" Version="1.7.3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport.Abstractions" Version="1.7.3" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="1.7.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Viscacha\Viscacha.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Viscacha.TestRunner.Tests" />
+</ItemGroup>
+
+
+</Project>
