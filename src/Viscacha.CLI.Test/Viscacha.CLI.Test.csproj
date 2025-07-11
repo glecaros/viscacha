@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Viscacha.TestRunner.Tests" />
+    <InternalsVisibleTo Include="Viscacha.CLI.Test.Tests" />
 </ItemGroup>
 
 
