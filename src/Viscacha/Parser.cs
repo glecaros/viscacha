@@ -90,7 +90,7 @@ public class Parser
         {
             return errorResult.UnwrapError();
         }
-        else  if (result is Result<T?, Error>.Ok { Value: not null } okResult)
+        else if (result is Result<T?, Error>.Ok { Value: not null } okResult)
         {
             return okResult.Value;
         }

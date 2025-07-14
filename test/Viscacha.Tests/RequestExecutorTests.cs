@@ -28,10 +28,12 @@ public class RequestExecutorTests
             Import: null,
             BaseUrl: "https://api.example.com",
             Authentication: null,
-            Headers: new Dictionary<string, string> {
+            Headers: new Dictionary<string, string>
+            {
                 ["Accept"] = "application/json",
             },
-            Query: new Dictionary<string, string> {
+            Query: new Dictionary<string, string>
+            {
                 ["api-version"] = "1.0",
             },
             ContentType: "application/json"
@@ -55,7 +57,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         var response = result.Unwrap();
         Assert.That(response.Code, Is.EqualTo(200));
@@ -71,7 +73,7 @@ public class RequestExecutorTests
 
         var result = _executor.Execute(_httpClient, request, 0);
 
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
         Assert.That(_mockHttp.RequestUri?.ToString(), Is.EqualTo("https://api.example.com/users?api-version=1.0"));
     }
 
@@ -84,7 +86,8 @@ public class RequestExecutorTests
             null,
             null,
             null,
-            new() {
+            new()
+            {
                 ["filter"] = "active",
             },
             null,
@@ -93,19 +96,20 @@ public class RequestExecutorTests
 
         var result = _executor.Execute(_httpClient, request, 0);
 
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
         Assert.That(_mockHttp.RequestUri?.ToString(), Is.EqualTo("https://api.test.com/users?api-version=1.0&filter=active"));
     }
 
     [Test]
     public void Execute_WithHeaders_SendsHeaders()
     {
-        Request request = new (
+        Request request = new(
             "GET",
             null,
             "/users",
             null,
-            new () {
+            new()
+            {
                 ["Custom-Header"] = "test-value"
             },
             null,
@@ -114,7 +118,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         Assert.That(_mockHttp?.Headers?.Contains("Custom-Header"), Is.True);
         Assert.That(_mockHttp?.Headers?.GetValues("Custom-Header"), Does.Contain("test-value"));
@@ -134,7 +138,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         Assert.That(_mockHttp?.Headers?.Contains("X-API-Key"), Is.True);
         Assert.That(_mockHttp?.Headers?.GetValues("X-API-Key"), Does.Contain("api-key"));
@@ -155,7 +159,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.OK);
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         Assert.That(_mockHttp.Method, Is.EqualTo(HttpMethod.Post));
         Assert.That(_mockHttp.RequestContent, Is.EqualTo("{\"name\":\"New User\"}"));
@@ -165,11 +169,11 @@ public class RequestExecutorTests
     [Test]
     public void Execute_WithJsonResponse_ParsesJsonResponse()
     {
-        Request request = new ("GET", null, "/users/1", null, null, null, null, null);
+        Request request = new("GET", null, "/users/1", null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         var response = result.Unwrap();
         Assert.That(response.Content, Is.Not.Null);
@@ -182,7 +186,7 @@ public class RequestExecutorTests
     [Test]
     public void Execute_WithVariableResolutionInBody_ResolvesVariables()
     {
-        Request request1 = new ("GET", null, "/users/1", null, null, null, null, null);
+        Request request1 = new("GET", null, "/users/1", null, null, null, null, null);
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
         _executor.Execute(_httpClient, request1, 0);
 
@@ -199,7 +203,7 @@ public class RequestExecutorTests
 
         var result = _executor.Execute(_httpClient, request2, 1);
 
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
         Assert.That(_mockHttp.RequestContent, Is.EqualTo("{\"parentId\": 1}"));
     }
 
@@ -207,12 +211,12 @@ public class RequestExecutorTests
     [Test]
     public void Execute_WithMissingUrl_ReturnsError()
     {
-        Defaults defaults = new (null, null, null, null, null, null);
+        Defaults defaults = new(null, null, null, null, null, null);
         RequestExecutor executor = new(defaults);
-        Request request = new ("GET", null, null, null, null, null, null, null);
+        Request request = new("GET", null, null, null, null, null, null, null);
 
         var result = executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Err);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Err>());
 
         var error = result.UnwrapError();
         Assert.That(error.Message, Is.EqualTo("URL is required"));
@@ -222,7 +226,8 @@ public class RequestExecutorTests
     public void Execute_CapturesResponseHeaders_InResponseWrapper()
     {
         Request request = new("GET", null, "/users", null, null, null, null, null);
-        _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]> {
+        _mockHttp.SetupResponseHeaders(new Dictionary<string, string[]>
+        {
             ["Content-Type"] = ["application/json"],
             ["X-Request-ID"] = ["abc123"],
             ["Set-Cookie"] = ["session=xyz; path=/", "tracking=123; path=/api"]
@@ -230,7 +235,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.OK, new { id = 1, name = "Test User" });
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         var response = result.Unwrap();
         Assert.That(response.Headers, Is.Not.Null);
@@ -250,7 +255,7 @@ public class RequestExecutorTests
         _mockHttp.SetupResponse(HttpStatusCode.NoContent);
 
         var result = _executor.Execute(_httpClient, request, 0);
-        Assert.That(result is Result<ResponseWrapper, Error>.Ok);
+        Assert.That(result, Is.InstanceOf<Result<ResponseWrapper, Error>.Ok>());
 
         var response = result.Unwrap();
         Assert.That(response.Headers, Is.Not.Null);
