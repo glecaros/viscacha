@@ -28,7 +28,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="dotenv.net" Version="3.2.1" />
+    <PackageReference Include="dotenv.net" Version="4.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
   </ItemGroup>
 
