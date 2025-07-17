@@ -1,8 +1,34 @@
 # Viscacha TestRunner
 
-A tool to run suites of HTTP API tests described in YAML files.
+> **Note**: The TestRunner functionality has been integrated into the unified Viscacha CLI. Please use the `viscacha test` command instead. See the [main CLI documentation](./README.CLI.md) for complete usage instructions.
 
-## Usage
+## Migration Guide
+
+The previous `viscacha-test` command has been replaced with `viscacha test`. Update your commands as follows:
+
+**Old:**
+```sh
+dotnet tool install --global Viscacha.TestRunner
+viscacha-test --input-file <suite.yaml> [--responses-directory <dir>]
+```
+
+**New:**
+```sh
+dotnet tool install --global Viscacha.CLI
+viscacha test --input-file <suite.yaml> [--responses-directory <dir>]
+```
+
+All functionality remains the same, just with the new unified command structure.
+
+## Legacy Documentation
+
+The information below is preserved for reference but please refer to the [main CLI documentation](./README.CLI.md) for the most up-to-date usage instructions.
+
+---
+
+*A tool to run suites of HTTP API tests described in YAML files.*
+
+## Usage (Legacy)
 
 ```sh
 dotnet tool install --global Viscacha.TestRunner
