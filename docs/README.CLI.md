@@ -81,7 +81,7 @@ Variables are resolved with the following precedence (highest to lowest):
 Suite-level variables are **not** available in configuration files. Use environment variables for values that need to be shared between suite files and configurations.
 
 ### File resolution
-Using the `${file:<file>:<format>}` syntax in the YAML allows iterpolating file contents in the template. Currently only `base64` is supported as format.
+Using the `${file:<file>:<format>}` syntax in the YAML allows interpolating file contents in the template. Currently only `base64` is supported as format.
 
 ## Output
 - **Request command**: Responses are printed as JSON to stdout
