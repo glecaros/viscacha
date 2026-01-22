@@ -1,8 +1,34 @@
 # Viscacha TestRunner
 
-A tool to run suites of HTTP API tests described in YAML files.
+> **Note**: The TestRunner functionality has been integrated into the unified Viscacha CLI. Please use the `viscacha test` command instead. See the [main CLI documentation](./README.CLI.md) for complete usage instructions.
 
-## Usage
+## Migration Guide
+
+The previous `viscacha-test` command has been replaced with `viscacha test`. Update your commands as follows:
+
+**Old:**
+```sh
+dotnet tool install --global Viscacha.TestRunner
+viscacha-test --input-file <suite.yaml> [--responses-directory <dir>]
+```
+
+**New:**
+```sh
+dotnet tool install --global Viscacha.CLI
+viscacha test --input-file <suite.yaml> [--responses-directory <dir>]
+```
+
+All functionality remains the same, just with the new unified command structure.
+
+## Legacy Documentation
+
+The information below is preserved for reference but please refer to the [main CLI documentation](./README.CLI.md) for the most up-to-date usage instructions.
+
+---
+
+*A tool to run suites of HTTP API tests described in YAML files.*
+
+## Usage (Legacy)
 
 ```sh
 dotnet tool install --global Viscacha.TestRunner
@@ -30,7 +56,7 @@ Variables are resolved with the following precedence (highest to lowest):
 Suite-level variables are **not** available in configuration files. Use environment variables for values that need to be shared between suite files and configurations.
 
 ### File resolution
-Using the `${file:<file>:<format>}` syntax in the YAML allows iterpolating file contents in the template. Currently only `base64` is supported as format.
+Using the `${file:<file>:<format>}` syntax in the YAML allows interpolating file contents in the template. Currently only `base64` is supported as format.
 
 ## Suite YAML Example
 ```yaml
