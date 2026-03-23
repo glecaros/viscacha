@@ -1,12 +1,17 @@
 # Viscacha
 
-Viscacha is a toolkit for testing HTTP APIs using YAML definitions. It provides:
-- A CLI for running API requests from YAML files
-- A TestRunner for running suites of tests with multiple configurations
+Viscacha is a unified CLI toolkit for testing HTTP APIs using YAML definitions. It provides:
+- A unified CLI with subcommands for running API requests and test suites
+- Support for multiple configurations and environments
+- Rich validation and testing capabilities
 
-## Packages
-- [CLI Tool](./docs/README.CLI.md) [![NuGet Version](https://img.shields.io/nuget/v/Viscacha.CLI)](https://www.nuget.org/packages/Viscacha.CLI)
-- [Test Runner](./docs/README.TestRunner.md) [![NuGet Version](https://img.shields.io/nuget/v/Viscacha.TestRunner)](https://www.nuget.org/packages/Viscacha.TestRunner)
+## Installation
+```bash
+dotnet tool install --global Viscacha.CLI
+```
+
+## Package
+- [Unified CLI Tool](./docs/README.CLI.md) [![NuGet Version](https://img.shields.io/nuget/v/Viscacha.CLI)](https://www.nuget.org/packages/Viscacha.CLI)
 
 ## Quick Start Guide
 
@@ -94,16 +99,38 @@ export MODEL_OPENAI="o1-mini"
 
 **5. Run your tests**:
 ```bash
-viscacha-test --input-file chat-completions-suite.yaml
+viscacha test --input-file chat-completions-suite.yaml
+```
+
+### Running Individual Requests
+You can also run individual request files directly:
+```bash
+viscacha request chat-completions/basic-text.yaml --defaults chat-completions/azure-defaults.yaml --var model=gpt-4
 ```
 
 ### Key Concepts
 
 - **Reusable Templates**: Write request files once, use across multiple services with different configurations
+- **Unified CLI**: Single tool with `viscacha request` for individual requests and `viscacha test` for test suites
+- **Multiple Configurations**: Test the same API calls against different environments or services
+- **Rich Validations**: Status codes, JSON schema validation, field format checking, and response comparison
+
+## Getting Help
+
+```bash
+# General help
+viscacha --help
+
+# Request command help  
+viscacha request --help
+
+# Test command help
+viscacha test --help
+```
 
 ## YAML Structure
 
-### Document Example (for CLI)
+### Document Example (for request command)
 ```yaml
 defaults:
   base-url: https://api.example.com
@@ -117,7 +144,7 @@ requests:
     body: '{"name": "New User"}'
 ```
 
-### Suite Example (for TestRunner)
+### Suite Example (for test command)
 ```yaml
 variables:
   api_key: secret
